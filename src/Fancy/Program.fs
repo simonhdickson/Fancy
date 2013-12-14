@@ -39,12 +39,9 @@ let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     match list with
     | [] -> sprintf <| Printf.StringFormat<_> fmt
     | s :: rest -> printHelper<string -> 'a> fmt rest s
-    
-let toNancy parameter =
-    sprintf "%s" parameter
 
 let formatNancyString inputString =
-    Regex.Replace(inputString, "%i", "{%s:int}")
+    Regex.Replace(inputString, "%s", "{%s}").Replace("%i", "{%s:int}")
 
 type State<'T, 'State> = 'State -> 'T * 'State
 let getState = fun s -> (s,s)
@@ -62,7 +59,7 @@ let requestWrapper parameters processor (dictionary:obj) =
 
 let parseUrl url processor =
     let parameters = getParameters processor
-    let url' = printHelper (formatNancyString url) (Seq.map (fun (i,_) -> i) parameters |> Seq.map toNancy |> Seq.toList)
+    let url' = printHelper (formatNancyString url) (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
     (url', parameters)
                                                             
 type FancyBuilder() =
