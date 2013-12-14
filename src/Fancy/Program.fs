@@ -54,7 +54,7 @@ let exec m s = m s |> snd
 let empty = fun s -> ((), s)
 let bind k m = fun s -> let (a, s') = m s in (k a) s'
                                                             
-type NancyBuilder() =
+type FancyBuilder() =
     member this.Return(a) : State<'T,'State> = fun s -> (a,s)
     member this.Bind(m:State<'T,'State>, k:'T -> State<'U,'State>) : State<'U,'State> = bind k m
     member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
@@ -71,10 +71,10 @@ type NancyBuilder() =
                         |> Seq.toArray
                         |> invokeFunction processor
                 putState nancyModule))
-let nancy = new NancyBuilder()
+let fancy = new FancyBuilder()
 
 let pipeline =
-    nancy {
+    fancy {
         get "/" (fun () -> sprintf "Hello World!")
         get "/%s" (fun name -> sprintf "Hello %s!" name) 
         get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
