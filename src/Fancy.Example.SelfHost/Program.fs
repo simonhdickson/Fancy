@@ -17,9 +17,6 @@ type FSharpNancy() as this =
     do
         exec pipeline this |> ignore
 
-try
-    let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
-    nancyHost.Start()  
-    Console.ReadLine() |> ignore
-with
-| e -> ()  
+let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
+nancyHost.Start()  
+Console.ReadLine() |> ignore

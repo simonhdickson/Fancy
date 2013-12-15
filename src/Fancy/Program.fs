@@ -12,6 +12,8 @@ open Microsoft.FSharp.Quotations.DerivedPatterns
 open Nancy             
 open Nancy.Bootstrapper
 
+/// Takes an object that represents a function of a'->'b and returns a list of all parameters
+/// required to invoke it
 let getParametersFromObj (instance:obj) =
     instance.GetType().GetMethods().[0].GetParameters()
     |> Seq.map (fun parameter-> parameter.Name, parameter.ParameterType)
@@ -19,10 +21,10 @@ let getParametersFromObj (instance:obj) =
       
 let getParameters (instance:'a->'b) =
     getParametersFromObj instance
-        
-let matchParameters parameters (dict:DynamicDictionary) =
-    parameters
-    |> Seq.map (fun (name:string,targetType) -> ((dict.[name] :?> DynamicDictionaryValue).Value,targetType))
+    
+let matchParameters expectedParameters (dict:Map<_,_>) =
+    expectedParameters
+    |> Seq.map (fun (name:string,targetType) -> dict.[name], targetType)
     |> Seq.map (fun (value,targetType) ->
         match value with 
         | x when x.GetType() = targetType -> x
@@ -31,6 +33,11 @@ let matchParameters parameters (dict:DynamicDictionary) =
             match converter.CanConvertFrom(x.GetType()) with
             | true -> converter.ConvertFrom(x)
             | false -> Convert.ChangeType(x, targetType))
+
+let dynamicDictionaryToMap (dict:DynamicDictionary) =
+    dict
+    |> Seq.map (fun key -> key,dict.[key])
+    |> Map.ofSeq
 
 let invokeFunction (instance:'a->'b) parameters =
     match Array.length parameters with
@@ -42,8 +49,12 @@ let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     | [] -> sprintf <| Printf.StringFormat<_> fmt
     | s :: rest -> printHelper<string -> 'a> fmt rest s
 
-let formatNancyString inputString =
-    Regex.Replace(inputString, "%s", "{%s}").Replace("%i", "{%s:int}")
+let nancyParameters =
+    [ "%s","{%s}" ; "%i","{%s:int}" ]
+
+let formatNancyString inputString=
+    nancyParameters
+    |> Seq.fold (fun (s:string) (x, y) -> s.Replace(x,y)) inputString 
 
 type State<'T, 'State> = 'State -> 'T * 'State
 let getState = fun s -> (s,s)
@@ -55,6 +66,7 @@ let bind k m = fun s -> let (a, s') = m s in (k a) s'
 
 let requestWrapper parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
+    |> dynamicDictionaryToMap
     |> matchParameters parameters
     |> Seq.toArray
     |> invokeFunction processor
