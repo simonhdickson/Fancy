@@ -10,7 +10,7 @@ module ReflectionTests =
             yield [|(fun (i:int) -> ()); [("i", typeof<int>)]|] 
             yield [|(fun (name:string) -> ()); [("name", typeof<string>)]|]
             yield [|(fun () -> ()); [("unitVar0", typeof<unit>)]|]     
-            yield [|(fun () -> failwith ""); [("unitVar0", typeof<unit>)]|]
+            yield [|(fun (``the int``:int) (``a string``:string)  -> failwith ""); [("the int", typeof<int>);"a string", typeof<string>]|]
         }
 
     [<Theory; PropertyData("functions with paramaters")>]
@@ -19,4 +19,3 @@ module ReflectionTests =
         for (expectedName,expectedtype),(name,``type``) in Seq.zip expected result do
             Assert.Equal<string>(expectedName, name)       
             Assert.Equal<Type>(expectedtype, ``type``)
-        ()

@@ -7,6 +7,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy", "Fancy\Fancy.fsproj
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Tests", "Fancy.Tests\Fancy.Tests.fsproj", "{7C063202-C9D9-47FB-8CC1-EA15F046A527}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Example.SelfHost", "Fancy.Example.SelfHost\Fancy.Example.SelfHost.fsproj", "{1E1B2F48-4887-49B0-B07C-29506CB5D280}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{7C063202-C9D9-47FB-8CC1-EA15F046A527}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C063202-C9D9-47FB-8CC1-EA15F046A527}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C063202-C9D9-47FB-8CC1-EA15F046A527}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E1B2F48-4887-49B0-B07C-29506CB5D280}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E1B2F48-4887-49B0-B07C-29506CB5D280}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E1B2F48-4887-49B0-B07C-29506CB5D280}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E1B2F48-4887-49B0-B07C-29506CB5D280}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

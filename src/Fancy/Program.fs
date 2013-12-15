@@ -9,9 +9,8 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns 
 open Microsoft.FSharp.Quotations.DerivedPatterns
 
-open Nancy            
-open Nancy.Bootstrapper             
-open Nancy.Hosting.Self
+open Nancy             
+open Nancy.Bootstrapper
 
 let getParametersFromObj (instance:obj) =
     instance.GetType().GetMethods().[0].GetParameters()
@@ -84,28 +83,3 @@ type FancyBuilder() =
                 do nancyModule.Post.[url'] <- fun i -> requestWrapper parameters processor i
                 putState nancyModule))
 let fancy = new FancyBuilder()
-
-let pipeline =
-    fancy {
-        get "/" (fun () -> sprintf "Hello World!")
-        get "/%s" (fun name -> sprintf "Hello %s!" name) 
-        get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
-    }
-
-type FSharpNancy() as this =
-    inherit NancyModule()
-    do exec pipeline this |> ignore
-
-type FSharpBootstrapper() =
-    inherit DefaultNancyBootstrapper()
-    override m.Modules =
-        let modules = base.Modules
-        seq {
-            yield! modules              
-            yield ModuleRegistration(typeof<FSharpNancy>)
-        }
-
-let nancyHost = new NancyHost(new FSharpBootstrapper(), Uri "http://localhost:8888/nancy/")
-nancyHost.Start()
-Console.ReadKey() |> ignore
-nancyHost.Dispose()
