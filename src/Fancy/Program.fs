@@ -50,7 +50,7 @@ let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     | s :: rest -> printHelper<string -> 'a> fmt rest s
 
 let nancyParameters =
-    [ "%s","{%s}" ; "%i","{%s:int}" ]
+    [ "%s","{%s}" ; "%i","{%s:int}" ; "%b","{%s:bool}" ; "%d","{%s:decimal}" ]
 
 let formatNancyString inputString=
     nancyParameters

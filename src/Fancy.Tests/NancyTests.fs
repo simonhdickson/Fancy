@@ -6,10 +6,12 @@ open Xunit.Extensions
 module NancyTests =
     let ``example urls`` : obj[] seq =
         seq {
-            yield [|""; ""|]    
+            yield [|"/"; "/"|]    
             yield [|"/HelloWorld"; "/HelloWorld"|] 
             yield [|"/%s"; "/{%s}"|]
-            yield [|"/%i"; "/{%s:int}"|]
+            yield [|"/%i"; "/{%s:int}"|]   
+            yield [|"/%d"; "/{%s:decimal}"|]
+            yield [|"/%b"; "/{%s:bool}"|]
         }
 
     [<Theory; PropertyData("example urls")>]
