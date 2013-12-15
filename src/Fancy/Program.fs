@@ -13,10 +13,13 @@ open Nancy
 open Nancy.Bootstrapper             
 open Nancy.Hosting.Self
 
-let getParameters (instance:'a->'b) =
+let getParametersFromObj (instance:obj) =
     instance.GetType().GetMethods().[0].GetParameters()
     |> Seq.map (fun parameter-> parameter.Name, parameter.ParameterType)
-    |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)
+    |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
+      
+let getParameters (instance:'a->'b) =
+    getParametersFromObj instance
         
 let matchParameters parameters (dict:DynamicDictionary) =
     parameters
