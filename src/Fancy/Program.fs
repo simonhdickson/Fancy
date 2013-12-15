@@ -56,14 +56,6 @@ let formatNancyString inputString=
     nancyParameters
     |> Seq.fold (fun (s:string) (x, y) -> s.Replace(x,y)) inputString 
 
-type State<'T, 'State> = 'State -> 'T * 'State
-let getState = fun s -> (s,s)
-let putState s = fun _ -> ((),s)
-let eval m s = m s |> fst
-let exec m s = m s |> snd
-let empty = fun s -> ((), s)
-let bind k m = fun s -> let (a, s') = m s in (k a) s'
-
 let requestWrapper parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
     |> dynamicDictionaryToMap
@@ -75,7 +67,16 @@ let parseUrl url processor =
     let parameters = getParameters processor
     let url' = printHelper (formatNancyString url) (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
     (url', parameters)
-                                                            
+
+/// This is derived from the StateBuilder in fsharpx                  
+type State<'T, 'State> = 'State -> 'T * 'State
+let getState = fun s -> (s,s)
+let putState s = fun _ -> ((),s)
+let eval m s = m s |> fst
+let exec m s = m s |> snd
+let empty = fun s -> ((), s)
+let bind k m = fun s -> let (a, s') = m s in (k a) s'
+                                          
 type FancyBuilder() =
     member this.Return(a) : State<'T,'State> = fun s -> (a,s)
     member this.Bind(m:State<'T,'State>, k:'T -> State<'U,'State>) : State<'U,'State> = bind k m
