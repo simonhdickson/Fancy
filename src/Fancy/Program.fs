@@ -49,12 +49,19 @@ let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     | [] -> sprintf <| Printf.StringFormat<_> fmt
     | s :: rest -> printHelper<string -> 'a> fmt rest s
 
-let nancyParameters =
-    [ "%s","{%s}" ; "%i","{%s:int}" ; "%b","{%s:bool}" ; "%d","{%s:decimal}" ]
+type Alpha = Alpha of string
 
-let formatNancyString inputString=
-    nancyParameters
-    |> Seq.fold (fun (s:string) (x, y) -> s.Replace(x,y)) inputString 
+let toNancyParameter input =
+    match input with
+    | _, sType when sType = typeof<string> -> "{%s}" 
+    | "%i", _ -> "{%s:int}"
+    | "%b", _ -> "{%s:bool}"
+    | "%d", _ -> "{%s:decimal}"
+    | "%A", sType -> "{%s:" + sType.Name.ToLower() + "}"
+    | _ -> failwith "Unsupported"
+
+let formatNancyString inputString (types:Type array) =
+    Regex.Replace(inputString, "%.", fun (m:Match) -> toNancyParameter (m.Value,types.[m.Index-1]))
 
 let requestWrapper parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
@@ -65,7 +72,7 @@ let requestWrapper parameters processor (dictionary:obj) =
 
 let parseUrl url processor =
     let parameters = getParameters processor
-    let url' = printHelper (formatNancyString url) (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
+    let url' = printHelper (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray)) (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
     (url', parameters)
 
 /// This is derived from the StateBuilder in fsharpx                  

@@ -6,15 +6,16 @@ open Xunit.Extensions
 module NancyTests =
     let ``example urls`` : obj[] seq =
         seq {
-            yield [|"/"; "/"|]    
-            yield [|"/HelloWorld"; "/HelloWorld"|] 
-            yield [|"/%s"; "/{%s}"|]
-            yield [|"/%i"; "/{%s:int}"|]   
-            yield [|"/%d"; "/{%s:decimal}"|]
-            yield [|"/%b"; "/{%s:bool}"|]
+            yield [| "/"; [|typeof<obj>|]; "/" |]    
+            yield [|"/HelloWorld"; [|typeof<obj>|]; "/HelloWorld"|] 
+            yield [|"/%s"; [|typeof<string>|]; "/{%s}"|]
+            yield [|"/%i"; [|typeof<int>|]; "/{%s:int}"|]   
+            yield [|"/%d"; [|typeof<decimal>|]; "/{%s:decimal}"|]
+            yield [|"/%b"; [|typeof<bool>|]; "/{%s:bool}"|]    
+            yield [|"/%A"; [|typeof<Alpha>|]; "/{%s:alpha}"|]
         }
 
     [<Theory; PropertyData("example urls")>]
-    let ``fancy correctly formats nancy url strings`` url expected =
-        let result = formatNancyString url
+    let ``fancy correctly formats nancy url strings`` url types expected =
+        let result = formatNancyString url types
         Assert.Equal<string>(expected, result)

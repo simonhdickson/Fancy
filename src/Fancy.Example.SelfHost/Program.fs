@@ -8,7 +8,7 @@ open Fancy
 let pipeline =
     fancy {
         get "/" (fun () -> sprintf "Hello World!")
-        get "/%s" (fun name -> sprintf "Hello %s!" name) 
+        get "/%A" (fun (Alpha name) -> sprintf "Hello %s!" name) 
         get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
     }
 
