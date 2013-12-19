@@ -12,8 +12,7 @@ let pipeline =
         get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
     }
 
-type Pipeline() =
-    inherit Fancy(pipeline)
+type Pipeline() = inherit Fancy(pipeline)
 
 let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
 nancyHost.Start()  

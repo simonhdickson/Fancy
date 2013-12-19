@@ -69,7 +69,9 @@ let toNancyParameter input =
     | _ -> failwith "Unsupported"
 
 let formatNancyString inputString (types:Type array) =
-    Regex.Replace(inputString, "%.", fun (m:Match) -> toNancyParameter (m.Value,types.[m.Index-1]))
+    // this is such an ugly hack but it make work :(
+    let index = ref -1
+    Regex.Replace(inputString, "%.", fun (m:Match) -> index:=!index+1; toNancyParameter (m.Value,types.[!index]))
 
 let requestWrapper parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
@@ -80,7 +82,9 @@ let requestWrapper parameters processor (dictionary:obj) =
 
 let parseUrl url processor =
     let parameters = getParameters processor
-    let url' = printHelper (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray)) (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
+    let nancyString = (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray))
+    let paramterNames = (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
+    let url' = printHelper nancyString paramterNames
     (url', parameters)
 
 /// This is derived from the StateBuilder in fsharpx                  
@@ -112,6 +116,7 @@ type FancyBuilder() =
                 putState nancyModule))
 let fancy = new FancyBuilder()
 
+[<AbstractClass>]
 type Fancy(pipeline:State<unit,NancyModule>) as this =
     inherit NancyModule()
     do
