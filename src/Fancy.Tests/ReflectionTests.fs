@@ -19,3 +19,14 @@ module ReflectionTests =
         for (expectedName,expectedtype),(name,``type``) in Seq.zip expected result do
             Assert.Equal<string>(expectedName, name)       
             Assert.Equal<Type>(expectedtype, ``type``)
+
+  
+    let ``conversions between types`` : obj[] seq =
+        seq {
+            yield [| typeof<int32>; int64 1; 1|]
+        }
+
+    [<Theory; PropertyData("conversions between types")>]
+    let ``converting between equivalent types`` (toType:Type) (value:obj) (expected:obj) =
+        let result = changeOrConvertType value toType
+        Assert.Equal(expected, result)

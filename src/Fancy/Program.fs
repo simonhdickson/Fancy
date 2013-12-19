@@ -5,6 +5,7 @@ open System.Dynamic
 open System.Text.RegularExpressions
 open Printf
 
+open Microsoft.FSharp.Reflection
 open Microsoft.FSharp.Quotations   
 open Microsoft.FSharp.Quotations.Patterns 
 open Microsoft.FSharp.Quotations.DerivedPatterns
@@ -21,18 +22,27 @@ let getParametersFromObj (instance:obj) =
       
 let getParameters (instance:'a->'b) =
     getParametersFromObj instance
+
+let makeSingleUnion (unionType:Type) (parameter:obj) =
+    let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
+    FSharpValue.MakeUnion(unionInfo, [|parameter|])
+
+/// This function converts a value between equivalent types
+/// ie. from int64 -> int32
+let changeOrConvertType value (targetType:Type) =
+    let converter = TypeDescriptor.GetConverter targetType
+    match converter.CanConvertFrom(value.GetType()) with
+    | true -> converter.ConvertFrom(value)
+    | false -> Convert.ChangeType(value, targetType)
     
 let matchParameters expectedParameters (dict:Map<_,_>) =
     expectedParameters
     |> Seq.map (fun (name:string,targetType) -> dict.[name], targetType)
     |> Seq.map (fun (value,targetType) ->
         match value with 
-        | x when x.GetType() = targetType -> x
-        | x ->
-            let converter = TypeDescriptor.GetConverter(targetType)
-            match converter.CanConvertFrom(x.GetType()) with
-            | true -> converter.ConvertFrom(x)
-            | false -> Convert.ChangeType(x, targetType))
+        | x when x.GetType() = targetType -> x  
+        | x when FSharpType.IsUnion(targetType) -> makeSingleUnion targetType x 
+        | x -> changeOrConvertType x targetType)
 
 let dynamicDictionaryToMap (dict:DynamicDictionary) =
     dict
@@ -48,8 +58,6 @@ let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     match list with
     | [] -> sprintf <| Printf.StringFormat<_> fmt
     | s :: rest -> printHelper<string -> 'a> fmt rest s
-
-type Alpha = Alpha of string
 
 let toNancyParameter input =
     match input with
@@ -103,3 +111,10 @@ type FancyBuilder() =
                 do nancyModule.Post.[url'] <- fun i -> requestWrapper parameters processor i
                 putState nancyModule))
 let fancy = new FancyBuilder()
+
+type Fancy(pipeline:State<unit,NancyModule>) as this =
+    inherit NancyModule()
+    do
+        exec pipeline this |> ignore
+
+type Alpha = Alpha of string

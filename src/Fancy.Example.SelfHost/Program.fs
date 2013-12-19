@@ -12,10 +12,8 @@ let pipeline =
         get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
     }
 
-type FSharpNancy() as this =
-    inherit NancyModule()
-    do
-        exec pipeline this |> ignore
+type Pipeline() =
+    inherit Fancy(pipeline)
 
 let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
 nancyHost.Start()  
