@@ -2,16 +2,16 @@
 open System  
 open System.ComponentModel   
 open System.Dynamic
-open System.Text.RegularExpressions
 open Printf
 
 open Microsoft.FSharp.Reflection
 open Microsoft.FSharp.Quotations   
 open Microsoft.FSharp.Quotations.Patterns 
 open Microsoft.FSharp.Quotations.DerivedPatterns
-
 open Nancy             
 open Nancy.Bootstrapper
+
+open Common
 
 /// Takes an object that represents a function of a'->'b and returns a list of all parameters
 /// required to invoke it
@@ -25,7 +25,7 @@ let getParameters (instance:'a->'b) =
 
 let makeSingleUnion (unionType:Type) (parameter:obj) =
     let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
-    FSharpValue.MakeUnion(unionInfo, [|parameter|])
+    FSharpValue.MakeUnion(unionInfo, [| parameter |])
 
 /// This function converts a value between equivalent types
 /// ie. from int64 -> int32
@@ -69,11 +69,9 @@ let toNancyParameter input =
     | _ -> failwith "Unsupported"
 
 let formatNancyString inputString (types:Type array) =
-    // this is such an ugly hack but it make work :(
-    let index = ref -1
-    Regex.Replace(inputString, "%.", fun (m:Match) -> index:=!index+1; toNancyParameter (m.Value,types.[!index]))
+    applyReplace inputString "%." (fun (s,i) -> toNancyParameter (s, types.[i]))
 
-let requestWrapper parameters processor (dictionary:obj) =
+let requestWrapper (this:NancyModule) parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
     |> dynamicDictionaryToMap
     |> matchParameters parameters
@@ -91,9 +89,7 @@ let parseUrl url processor =
 type State<'T, 'State> = 'State -> 'T * 'State
 let getState = fun s -> (s,s)
 let putState s = fun _ -> ((),s)
-let eval m s = m s |> fst
 let exec m s = m s |> snd
-let empty = fun s -> ((), s)
 let bind k m = fun s -> let (a, s') = m s in (k a) s'
                                           
 type FancyBuilder() =
@@ -105,14 +101,14 @@ type FancyBuilder() =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Get.[url'] <- fun i -> requestWrapper parameters processor i
+                do nancyModule.Get.[url'] <- fun i -> requestWrapper nancyModule parameters processor i
                 putState nancyModule))  
     [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
     member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->'b) =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Post.[url'] <- fun i -> requestWrapper parameters processor i
+                do nancyModule.Post.[url'] <- fun i -> requestWrapper nancyModule parameters processor i
                 putState nancyModule))
 let fancy = new FancyBuilder()
 

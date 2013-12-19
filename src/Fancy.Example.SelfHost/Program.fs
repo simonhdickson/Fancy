@@ -1,7 +1,5 @@
 ﻿module Program
-open System
-open Nancy        
-open Nancy.Bootstrapper       
+open System     
 open Nancy.Hosting.Self
 open Fancy
 
@@ -10,6 +8,7 @@ let pipeline =
         get "/" (fun () -> sprintf "Hello World!")
         get "/%A" (fun (Alpha name) -> sprintf "Hello %s!" name) 
         get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
+        get "/fanciful" (fun number -> sprintf "%i" <| number * number) 
     }
 
 type Pipeline() = inherit Fancy(pipeline)
