@@ -46,7 +46,7 @@ let matchParameters expectedParameters (dict:Map<_,_>) =
 
 let dynamicDictionaryToMap (dict:DynamicDictionary) =
     dict
-    |> Seq.map (fun key -> key,dict.[key])
+    |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
     |> Map.ofSeq
 
 let invokeFunction (instance:'a->'b) parameters =
