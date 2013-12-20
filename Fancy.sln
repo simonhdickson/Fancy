@@ -3,11 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy", "Fancy\Fancy.fsproj", "{ABA1D8E3-DCC7-4054-909A-1F99AE626374}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy", "src\Fancy\Fancy.fsproj", "{ABA1D8E3-DCC7-4054-909A-1F99AE626374}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Tests", "Fancy.Tests\Fancy.Tests.fsproj", "{7C063202-C9D9-47FB-8CC1-EA15F046A527}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Tests", "src\Fancy.Tests\Fancy.Tests.fsproj", "{7C063202-C9D9-47FB-8CC1-EA15F046A527}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Example.SelfHost", "Fancy.Example.SelfHost\Fancy.Example.SelfHost.fsproj", "{1E1B2F48-4887-49B0-B07C-29506CB5D280}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Example.SelfHost", "src\Fancy.Example.SelfHost\Fancy.Example.SelfHost.fsproj", "{1E1B2F48-4887-49B0-B07C-29506CB5D280}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{34865333-6CB0-4C02-A4B1-355940194539}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

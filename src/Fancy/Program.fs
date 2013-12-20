@@ -1,5 +1,6 @@
 ﻿module Fancy
-open System  
+open System 
+open System.Linq 
 open System.ComponentModel   
 open System.Dynamic
 open Printf
@@ -69,7 +70,7 @@ let toNancyParameter input =
     | _ -> failwith "Unsupported"
 
 let formatNancyString inputString (types:Type array) =
-    applyReplace inputString "%." (fun (s,i) -> toNancyParameter (s, types.[i]))
+    applyReplace inputString "%." (fun (s, i) -> toNancyParameter (s, types.[i]))
 
 let requestWrapper (this:NancyModule) parameters processor (dictionary:obj) =
     (dictionary :?> DynamicDictionary)
@@ -78,10 +79,11 @@ let requestWrapper (this:NancyModule) parameters processor (dictionary:obj) =
     |> Seq.toArray
     |> invokeFunction processor
 
-let parseUrl url processor =
+let parseUrl (url:string) processor =              
+    let formatArgCount = url.Count(fun i -> i = '%')
     let parameters = getParameters processor
     let nancyString = (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray))
-    let paramterNames = (Seq.map (fun (i,_) -> i) parameters |> Seq.toList)
+    let paramterNames = (Seq.map (fun (i,_) -> i) parameters |> Seq.take formatArgCount |>  Seq.toList)
     let url' = printHelper nancyString paramterNames
     (url', parameters)
 
@@ -101,7 +103,8 @@ type FancyBuilder() =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Get.[url'] <- fun i -> requestWrapper nancyModule parameters processor i
+                do nancyModule.Get.[url'] <- fun i ->
+                                                requestWrapper nancyModule parameters processor i
                 putState nancyModule))  
     [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
     member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->'b) =
