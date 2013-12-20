@@ -1,14 +1,17 @@
 ﻿module Program
-open System     
+open System   
+open Nancy  
 open Nancy.Hosting.Self
 open Fancy
 
+type Person = { name:string }
+type Square = { result:int }
+
 let pipeline =
     fancy {
-        get "/" (fun () -> sprintf "Hello World!")
-        get "/%A" (fun (Alpha name) -> sprintf "Hello %s!" name) 
-        get "/square/%i" (fun number -> sprintf "%i" <| number * number) 
-        get "/fanciful" (fun number -> sprintf "%i" <| number * number) 
+        get "/" (fun () -> asPlainText "Hello World!")
+        get "/%A" (fun (Alpha name) -> asJson { name=name }) 
+        get "/square/%i" (fun number -> asXml { result=number*number }) 
     }
 
 type Pipeline() = inherit Fancy(pipeline)

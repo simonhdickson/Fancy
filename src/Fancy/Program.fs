@@ -50,10 +50,13 @@ let dynamicDictionaryToMap (dict:DynamicDictionary) =
     |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
     |> Map.ofSeq
 
-let invokeFunction (instance:'a->'b) parameters =
+let invokeFunctionObj (instance:obj) parameters =
     match Array.length parameters with
     | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
     | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters)
+
+let invokeFunction (instance:'a->'b) parameters =
+    invokeFunctionObj instance parameters
 
 let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
     match list with
@@ -99,19 +102,20 @@ type FancyBuilder() =
     member this.Bind(m:State<'T,'State>, k:'T -> State<'U,'State>) : State<'U,'State> = bind k m
     member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
     [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Get(m, url:StringFormat<'a->'b,'c>, processor:'a->'b) =
+    member this.Get(m, url:StringFormat<'a->'b,'c>, processor:'a->(NancyModule->'b)) =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Get.[url'] <- fun i ->
-                                                requestWrapper nancyModule parameters processor i
+                do nancyModule.Get.[url'] <- fun i ->  let result = requestWrapper nancyModule parameters processor i
+                                                       invokeFunctionObj result [|nancyModule|]
                 putState nancyModule))  
     [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->'b) =
+    member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->(NancyModule->'b)) =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Post.[url'] <- fun i -> requestWrapper nancyModule parameters processor i
+                do nancyModule.Post.[url'] <- fun i -> let result = requestWrapper nancyModule parameters processor i
+                                                       invokeFunctionObj result [|nancyModule|]
                 putState nancyModule))
 let fancy = new FancyBuilder()
 
@@ -122,3 +126,12 @@ type Fancy(pipeline:State<unit,NancyModule>) as this =
         exec pipeline this |> ignore
 
 type Alpha = Alpha of string
+
+let asPlainText output (this:NancyModule) =
+    this.Response.AsText(output)
+
+let asJson output (this:NancyModule) =
+    this.Response.AsJson(output)
+
+let asXml output (this:NancyModule) =
+    this.Response.AsXml(output)
