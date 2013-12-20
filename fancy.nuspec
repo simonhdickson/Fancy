@@ -6,14 +6,13 @@
     <authors>@authors@</authors>
     <owners>@authors@</owners>
     <summary>@summary@</summary>
-    <licenseUrl>https://github.com/octokit/octokit.net/blob/master/LICENSE.txt</licenseUrl>
-    <projectUrl>https://github.com/octokit/octokit.net</projectUrl>
-    <iconUrl>https://github.com/octokit/octokit.net/icon.png</iconUrl>
+    <licenseUrl>https://github.com/simonhdickson/Fancy/blob/master/Licence.txt</licenseUrl>
+    <projectUrl>https://github.com/simonhdickson/Fancy</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>@description@</description>
     <releaseNotes>@releaseNotes@</releaseNotes>
-    <copyright>Copyright GitHub 2013</copyright>    
-    <tags>GitHub API Octokit</tags>
+    <copyright>Simon Dickson 2013</copyright>    
+    <tags>@tags@</tags>
     @dependencies@
   </metadata>
 </package>

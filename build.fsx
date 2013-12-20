@@ -5,6 +5,7 @@ RestorePackages()
 
 let buildDir = "./build/"
 let testDir  = "./test/"
+let nugetDir = "./nuget/"
 
 let project = "Fanciful"
 let authors = ["Simon Dickson"]
@@ -15,7 +16,7 @@ let description = """
 let tags = "F# fsharp nancy fancy fanciful"
 
 Target "Clean" (fun _ ->
-    CleanDirs [buildDir; testDir]
+    CleanDirs [buildDir; testDir; nugetDir]
 )
 
 Target "BuildApp" (fun _ ->
@@ -41,25 +42,29 @@ Target "Test" (fun _ ->
 Target "NuGet" (fun _ ->
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = ".nuget/nuget.exe"
+    let nugetlibDir = nugetDir @@ "lib/net45"
+    CopyDir nugetlibDir "build" (fun file -> file.Contains "Fancy.dll")
     NuGet (fun p -> 
         { p with   
             Authors = authors
             Project = project
             Summary = summary
             Description = description
-            Version = "0.1"
+            Version = "0.1.0-beta"
             Tags = tags
-            OutputPath = "bin"
+            OutputPath = nugetDir
             ToolPath = nugetPath
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"
-            Dependencies = [] })
-        "/FSharp.Formatting.nuspec"
+            Dependencies = 
+                ["Nancy", GetPackageVersion "./packages/" "Nancy"] })
+        "fancy.nuspec"
 )
 
 "Clean"
   ==> "BuildApp"
   ==> "BuildTest"
-  ==> "Test"
+  ==> "Test"  
+  ==> "NuGet"
 
-RunTargetOrDefault "Test"
+RunTargetOrDefault "NuGet"
