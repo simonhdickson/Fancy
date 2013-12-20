@@ -8,7 +8,7 @@ Install
 ```fsharp
 let pipeline =
     fancy {
-        get "/" (fun () -> "Hello World!")
+        get "/" (fun () -> asPlainText "Hello World!")
     }
 ```
 
