@@ -31,3 +31,4 @@ packages/*
 build/*
 nuget/*
 test/*
+docs/output/*

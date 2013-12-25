@@ -102,20 +102,20 @@ type FancyBuilder() =
     member this.Bind(m:State<'T,'State>, k:'T -> State<'U,'State>) : State<'U,'State> = bind k m
     member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
     [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Get(m, url:StringFormat<'a->'b,'c>, processor:'a->(NancyModule->'b)) =
+    member this.Get(m, url:StringFormat<'a->'b,'c>, processor:'a->(IResponseFormatter->'b)) =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
                 do nancyModule.Get.[url'] <- fun i ->  let result = requestWrapper nancyModule parameters processor i
-                                                       invokeFunctionObj result [|nancyModule|]
+                                                       invokeFunctionObj result [|nancyModule.Response|]
                 putState nancyModule))  
     [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->(NancyModule->'b)) =
+    member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->(IResponseFormatter->'b)) =
         let (url', parameters) = parseUrl url.Value processor
         this.Bind(m, fun _ ->
             this.Bind(getState, fun (nancyModule:NancyModule) ->
                 do nancyModule.Post.[url'] <- fun i -> let result = requestWrapper nancyModule parameters processor i
-                                                       invokeFunctionObj result [|nancyModule|]
+                                                       invokeFunctionObj result [|nancyModule.Response|]
                 putState nancyModule))
 let fancy = new FancyBuilder()
 
@@ -127,11 +127,11 @@ type Fancy(pipeline:State<unit,NancyModule>) as this =
 
 type Alpha = Alpha of string
 
-let asPlainText output (this:NancyModule) =
-    this.Response.AsText(output)
+let asPlainText output (this:IResponseFormatter) =
+    this.AsText(output)
 
-let asJson output (this:NancyModule) =
-    this.Response.AsJson(output)
+let asJson output (this:IResponseFormatter) =
+    this.AsJson(output)
 
-let asXml output (this:NancyModule) =
-    this.Response.AsXml(output)
+let asXml output (this:IResponseFormatter) =
+    this.AsXml(output)

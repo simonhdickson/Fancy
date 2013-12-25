@@ -67,4 +67,4 @@ Target "NuGet" (fun _ ->
   ==> "Test"  
   ==> "NuGet"
 
-RunTargetOrDefault "NuGet"
+RunTargetOrDefault "Test"
