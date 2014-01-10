@@ -1,5 +1,7 @@
 #r "packages/FAKE/tools/FakeLib.dll"
-open Fake
+open System.IO
+open Fake            
+open Fake.Git
 
 RestorePackages()
 
@@ -61,10 +63,29 @@ Target "NuGet" (fun _ ->
         "fancy.nuspec"
 )
 
+Target "GenerateDocs" (fun _ ->
+    executeFSI "docs/tools" "generate.fsx" [] |> ignore
+)
+
+let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "RELEASE_NOTES.md")
+let gitHome = "https://github.com/simonhdickson"
+
+Target "ReleaseDocs" (fun _ ->
+    Repository.clone "" (gitHome + "/Fancy.git") "temp/gh-pages"
+    Branches.checkoutBranch "temp/gh-pages" "gh-pages"
+    CopyRecursive "docs/output" "temp/gh-pages" true |> printfn "%A"
+    CommandHelper.runSimpleGitCommand "temp/gh-pages" "add ." |> printfn "%s"
+    let cmd = sprintf """commit -a -m "Update generated documentation for version %s""" release.NugetVersion
+    CommandHelper.runSimpleGitCommand "temp/gh-pages" cmd |> printfn "%s"
+    Branches.push "temp/gh-pages"
+)
+
 "Clean"
   ==> "BuildApp"
   ==> "BuildTest"
-  ==> "Test"  
+  ==> "Test"
+  ==> "GenerateDocs"
+  ==> "ReleaseDocs"
   ==> "NuGet"
 
-RunTargetOrDefault "Test"
+RunTargetOrDefault "GenerateDocs"

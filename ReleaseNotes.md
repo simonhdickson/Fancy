@@ -1,0 +1,1 @@
+0.2.5-beta - Adding docuemntation, support for multiple response types
