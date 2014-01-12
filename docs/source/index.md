@@ -1,19 +1,15 @@
-F# Formatting: Documentation tools
+Fancy
 ==================================
 
-The F# Formatting libraries (`FSharp.CodeFormat.dll` and `FSharp.Markdown.dll`) include 
-an F# implementation of the Markdown parser and a F# code formatter that can be used to tokenize F# 
-code and obtain information about tokens including tool-tips (as in Visual Studio and MonoDevelop) 
-with type information. The package also comes with a sample that implements literate programming for F#
-(and was used to generate this documentation).
+Fancy is designed to act as a type-safe, F# orientated wrapper around the Nancy. 
 
 <div class="row">
   <div class="span1"></div>
   <div class="span6">
     <div class="well well-small" id="nuget">
-      The F# Formatting Library is available as <a href="https://nuget.org/packages/FSharp.Formatting">FSharp.Formatting on NuGet</a>.
+      The Fancy Library is available as <a href="https://nuget.org/packages/Fanciful">Fancy on NuGet</a>.
       To install it, run the following command in the <a href="http://docs.nuget.org/docs/start-here/using-the-package-manager-console">Package Manager Console</a>:
-      <pre>PM> Install-Package FSharp.Formatting</pre>
+      <pre>PM> Install-Package Fanciful</pre>
     </div>
   </div>
   <div class="span1"></div>
