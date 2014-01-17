@@ -23,7 +23,7 @@ if not (Directory.Exists(output)) then
   Directory.CreateDirectory (Path.Combine(output, "content")) |> ignore
 
 Literate.ProcessDirectory
-  (source, projectTemplate, output, replacements = projectInfo)
+  (source, projectTemplate, output, OutputKind.Html, replacements = projectInfo)
 
 for fileInfo in DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, "..\content")).EnumerateFiles() do
   fileInfo.CopyTo(Path.Combine(Path.Combine(output, "content"), fileInfo.Name)) |> ignore

@@ -5,9 +5,10 @@ open Fake.Git
 
 RestorePackages()
 
-let buildDir = "./build/"
+let buildDir = "./bin/"
 let testDir  = "./test/"
 let nugetDir = "./nuget/"
+let fsharpCoreDir = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\4.3.1.0"
 
 let project = "Fanciful"
 let authors = ["Simon Dickson"]
@@ -15,22 +16,18 @@ let summary = "A more strongly typed way to use Nancy"
 let description = """
   An F# friendly wrapper around Nancy, alose aiming for compatibile with Nancy"""
 
-let tags = "F# fsharp nancy fancy fanciful"
+let tags = "F# fsharp nancy fanciful"
 
 Target "Clean" (fun _ ->
     CleanDirs [buildDir; testDir; nugetDir]
 )
 
-Target "BuildApp" (fun _ ->
+Target "Build" (fun _ ->
    !! "src/**/*.fsproj"
      |> MSBuildRelease buildDir "Build"
      |> Log "AppBuild-Output: "
-)
-
-Target "BuildTest" (fun _ ->
-    !! "src/**/*.fsproj"
-      |> MSBuildDebug testDir "Build"
-      |> Log "TestBuild-Output: "
+   // TODO: Work out why this is required :s
+   CopyDir buildDir fsharpCoreDir (fun file -> file.EndsWith ".optdata" || file.EndsWith ".sigdata")
 )
 
 Target "Test" (fun _ ->
@@ -40,19 +37,21 @@ Target "Test" (fun _ ->
              ShadowCopy = false;
              OutputDir = testDir})
 )
+              
+let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "ReleaseNotes.md")
 
 Target "NuGet" (fun _ ->
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = ".nuget/nuget.exe"
     let nugetlibDir = nugetDir @@ "lib/net45"
-    CopyDir nugetlibDir "build" (fun file -> file.Contains "Fancy.dll")
+    CopyDir nugetlibDir buildDir (fun file -> file.Contains "Fancy.dll")
     NuGet (fun p -> 
         { p with   
             Authors = authors
             Project = project
             Summary = summary
             Description = description
-            Version = "0.1.0-beta"
+            Version = release.NugetVersion
             Tags = tags
             OutputPath = nugetDir
             ToolPath = nugetPath
@@ -67,7 +66,6 @@ Target "GenerateDocs" (fun _ ->
     executeFSI "docs/tools" "generate.fsx" [] |> ignore
 )
 
-let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "RELEASE_NOTES.md")
 let gitHome = "https://github.com/simonhdickson"
 
 Target "ReleaseDocs" (fun _ ->
@@ -81,8 +79,7 @@ Target "ReleaseDocs" (fun _ ->
 )
 
 "Clean"
-  ==> "BuildApp"
-  ==> "BuildTest"
+  ==> "Build"
   ==> "Test"
   ==> "GenerateDocs"
   ==> "ReleaseDocs"
