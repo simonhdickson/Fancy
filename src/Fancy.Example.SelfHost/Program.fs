@@ -9,9 +9,11 @@ type Square = { result:int }
 
 let pipeline =
     fancy {
-        get "/" (fun () -> asPlainText "Hello World!")
-        get "/%A" (fun (Alpha name) -> asJson { name=name }) 
-        get "/square/%i" (fun number -> asXml { result=number*number }) 
+        get "/%s" (fun s -> 
+            (200, "Hallo", [])
+        )
+        //get "/%A" (fun (Alpha name) -> asJson { name=name }) 
+        //get "/square/%i" (fun number -> asXml { result=number*number }) 
     }
 
 type Pipeline() = inherit Fancy(pipeline)

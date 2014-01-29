@@ -12,7 +12,7 @@ module NancyTests =
             yield [|"/%i"; [|typeof<int>|]; "/{%s:int}"|]   
             yield [|"/%d"; [|typeof<decimal>|]; "/{%s:decimal}"|]
             yield [|"/%b"; [|typeof<bool>|]; "/{%s:bool}"|]    
-            yield [|"/%A"; [|typeof<Alpha>|]; "/{%s:alpha}"|]
+            //yield [|"/%A"; [|typeof<Alpha>|]; "/{%s:alpha}"|]
         }
 
     [<Theory; PropertyData("example urls")>]
