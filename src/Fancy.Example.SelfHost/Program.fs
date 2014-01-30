@@ -1,6 +1,7 @@
 ﻿module Program
 open System   
 open Nancy  
+open Nancy.Responses.Negotiation
 open Nancy.Hosting.Self
 open Fancy
 
@@ -9,9 +10,9 @@ type Square = { result:int }
 
 let pipeline =
     fancy {
-        get "/%s" (fun s -> 
-            (200, "Hallo", [])
-        )
+        get "/%s" (fun this s -> async {
+            return this.Negotiate.WithStatusCode(200).WithModel(s)
+        })
         //get "/%A" (fun (Alpha name) -> asJson { name=name }) 
         //get "/square/%i" (fun number -> asXml { result=number*number }) 
     }
