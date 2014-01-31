@@ -12,21 +12,28 @@ type Square = { result:int }
 
 let barry x = async { return x }
 
+//
+//let pipeline =
+//
+//        //get "/%A" (fun (Alpha name) -> asJson { name=name }) 
+//        //get "/square/%i" (fun number -> asXml { result=number*number }) 
+//    }
 
-let pipeline =
-    fancy {
-        get "/%s" (fun this s -> fancyAsync {
-
-            let! b = barry "hi"
-            return {
-                name = "Hallo!"
-            }
+type Pipeline() as this = 
+    inherit NancyModule()
+   
+    let fancy = new FancyBuilder<Pipeline>(this)
+   
+    let routes = fancy {
+        get "/%s" (fun s -> fancyAsync {
+            return this.s
         })
-        //get "/%A" (fun (Alpha name) -> asJson { name=name }) 
-        //get "/square/%i" (fun number -> asXml { result=number*number }) 
     }
+    do Fancy.exec routes this |> ignore
 
-type Pipeline() = inherit Fancy(pipeline)
+    member this.s = "Bert"
+
+
 
 let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
 nancyHost.Start()  

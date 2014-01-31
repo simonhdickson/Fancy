@@ -126,79 +126,65 @@
     let exec m s = m s |> snd
     let bind k m = fun s -> let (a, s') = m s in (k a) s'
                                       
-    type FancyBuilder() =
+    type FancyBuilder<'z when 'z :> NancyModule> (nancyModule:'z) =
         member this.Return(a) : State<'T,'State> = fun s -> (a,s)
         member this.Bind(m:State<'T,'State>, k: 'T -> State<'U,'State>) : State<'U,'State> = bind k m
         member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
 
+        member private this.routeDelegateBuilder (processor, parameters, nancyModule) = 
+            fun dictionary cancelationToken -> 
+                Async.StartAsTask (requestWrapper parameters (processor nancyModule) dictionary)
+
         [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
+        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: 'z -> 'a -> Async<obj>) =
             this.Bind(state, fun _ ->
-                this.Bind(getState, fun (nancyModule:NancyModule) ->
+                this.Bind(getState, fun (nm) ->
                     // parsing is required for typesafe processor
                     let (parsedUrl, parameters) = parseUrl url.Value processor
-                    do nancyModule.Get.[parsedUrl, true] <- fun i cancelationToken -> 
-                        Async.StartAsTask (requestWrapper parameters (processor nancyModule) i)
+                    do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
                     putState nancyModule))
                 
-        [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Post(state, url:StringFormat<'a->'b,'c>, processor) =
-            // parsing is required for typesafe processor
-            let (parsedUrl, parameters) = parseUrl url.Value processor 
-            this.Bind(state, fun _ ->
-                this.Bind(getState, fun (nancyModule:NancyModule) ->
-                    let processorWithContext = processor nancyModule
-                    do nancyModule.Post.[parsedUrl, true] <- fun i cancelationToken -> 
-                        Async.StartAsTask (requestWrapper parameters processorWithContext i) 
-                    putState nancyModule)) 
-
-        [<CustomOperation("put", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Put(state, url:StringFormat<'a->'b,'c>, processor) =
-            // parsing is required for typesafe processor
-            let (parsedUrl, parameters) = parseUrl url.Value processor 
-            this.Bind(state, fun _ ->
-                this.Bind(getState, fun (nancyModule:NancyModule) ->
-                    let processorWithContext = processor nancyModule
-                    do nancyModule.Put.[parsedUrl, true] <- fun i cancelationToken -> 
-                        Async.StartAsTask (requestWrapper parameters processorWithContext i)
-                    putState nancyModule)) 
-
-        [<CustomOperation("delete", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor) =
-            // parsing is required for typesafe processor
-            let (parsedUrl, parameters) = parseUrl url.Value processor 
-            this.Bind(state, fun _ ->
-                this.Bind(getState, fun (nancyModule:NancyModule) ->
-                    let processorWithContext = processor nancyModule
-                    do nancyModule.Delete.[parsedUrl, true] <- fun i cancelationToken ->  
-                        Async.StartAsTask (requestWrapper parameters processorWithContext i)
-                    putState nancyModule)) 
-
-//        [<CustomOperation("head", MaintainsVariableSpaceUsingBind=true)>]
-//        member this.Head(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+//        [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
+//        member this.Post(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
 //            // parsing is required for typesafe processor
 //            let (parsedUrl, parameters) = parseUrl url.Value processor 
 //            this.Bind(state, fun _ ->
 //                this.Bind(getState, fun (nancyModule:NancyModule) ->
 //                    let processorWithContext = processor nancyModule
-//                    do nancyModule.Head.[parsedUrl, true] <- fun i cancelationToken -> 
+//                    do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+//                    putState nancyModule)) 
+//
+//        [<CustomOperation("put", MaintainsVariableSpaceUsingBind=true)>]
+//        member this.Put(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
+//            // parsing is required for typesafe processor
+//            let (parsedUrl, parameters) = parseUrl url.Value processor 
+//            this.Bind(state, fun _ ->
+//                this.Bind(getState, fun (nancyModule:NancyModule) ->
+//                    let processorWithContext = processor nancyModule
+//                    do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+//                    putState nancyModule)) 
+//
+//        [<CustomOperation("delete", MaintainsVariableSpaceUsingBind=true)>]
+//        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
+//            // parsing is required for typesafe processor
+//            let (parsedUrl, parameters) = parseUrl url.Value processor 
+//            this.Bind(state, fun _ ->
+//                this.Bind(getState, fun (nancyModule:NancyModule) ->
+//                    let processorWithContext = processor nancyModule
+//                    do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+//                    putState nancyModule)) 
+//
+//        [<CustomOperation("options", MaintainsVariableSpaceUsingBind=true)>]
+//        member this.Options(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
+//            // parsing is required for typesafe processor
+//            let (parsedUrl, parameters) = parseUrl url.Value processor 
+//            this.Bind(state, fun _ ->
+//                this.Bind(getState, fun (nancyModule:NancyModule) ->
+//                    let processorWithContext = processor nancyModule
+//                    do nancyModule.Options.[parsedUrl, true] <- fun i cancelationToken -> 
 //                        Async.StartAsTask (requestWrapper parameters processorWithContext i)
 //                    putState nancyModule)) 
-
-        [<CustomOperation("options", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Options(state, url:StringFormat<'a->'b,'c>, processor) =
-            // parsing is required for typesafe processor
-            let (parsedUrl, parameters) = parseUrl url.Value processor 
-            this.Bind(state, fun _ ->
-                this.Bind(getState, fun (nancyModule:NancyModule) ->
-                    let processorWithContext = processor nancyModule
-                    do nancyModule.Options.[parsedUrl, true] <- fun i cancelationToken -> 
-                        Async.StartAsTask (requestWrapper parameters processorWithContext i)
-                    putState nancyModule)) 
-
-    let fancy = new FancyBuilder()
-
-    [<AbstractClass>]
-    type Fancy(pipeline:State<unit,NancyModule>) as this =
-        inherit NancyModule()
-        do exec pipeline this |> ignore
+//    [<AbstractClass>]
+//    type Fancy(pipeline:State<unit,'a>) as this =
+//        inherit NancyModule()
+//        do exec pipeline this |> ignore
