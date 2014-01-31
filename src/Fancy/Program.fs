@@ -4,7 +4,6 @@
     open System.ComponentModel   
     open System.Dynamic
     open Printf
-
     open Microsoft.FSharp.Reflection
     open Microsoft.FSharp.Quotations   
     open Microsoft.FSharp.Quotations.Patterns 
@@ -12,15 +11,15 @@
     open Nancy             
     open Nancy.Bootstrapper
     open Nancy.Responses.Negotiation
+    open System.Text.RegularExpressions
 
-    open Common
 
     // Because nancy expects an object to do with as she may see fit
     // and because we want to handle our routes in an async context
     // we added the box function to the return function of the AsyncBuilder.
     // A fancy function now has the signature NancyModule -> 'a -> Async<obj>,
-    // but you can choose to return a string, a Nancy Negotiator, JSON or whatever
-    // Nancy has a serializer for. 
+    // but you can choose to return a string, a Nancy Negotiator, .net object, JSON
+    // or whatever Nancy can serialize to the requested content type. 
     type BoxedAsyncBuilder () =
         member this.Bind (computation,binder) = async {
             let! arg = computation
@@ -95,6 +94,10 @@
         | "%d", _ -> "{%s:decimal}"
         | "%A", sType -> "{%s:" + sType.Name.ToLower() + "}"
         | _ -> failwith "Unsupported"
+
+    let applyReplace inputString regex f =
+        let index = ref -1
+        Regex.Replace(inputString, regex, fun (m:Match) -> index:=!index+1; f (m.Value,!index))
 
     let formatNancyString inputString (types:Type array) =
         applyReplace inputString "%." (fun (s, i) -> toNancyParameter (s, types.[i]))

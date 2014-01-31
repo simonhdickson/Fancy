@@ -11,7 +11,13 @@ module NancyTests =
             yield [|"/%s"; [|typeof<string>|]; "/{%s}"|]
             yield [|"/%i"; [|typeof<int>|]; "/{%s:int}"|]   
             yield [|"/%d"; [|typeof<decimal>|]; "/{%s:decimal}"|]
-            yield [|"/%b"; [|typeof<bool>|]; "/{%s:bool}"|]    
+            yield [|"/%b"; [|typeof<bool>|]; "/{%s:bool}"|]
+
+            yield [|"/%s/%s"; [|typeof<(string*string)>|]; "/{%s}/{%s}"|]
+            yield [|"/%s/HelloWorld/%s"; [|typeof<(string*string)>|]; "/{%s}/HelloWorld/{%s}"|]
+            yield [|"/%d/%i"; [|typeof<(decimal*int)>|]; "/{%s:decimal}/{%s:int}"|]
+            yield [|"/%d/HelloWorld/%i"; [|typeof<(decimal*int)>|]; "/{%s:decimal}/HelloWorld/{%s:int}"|]    
+            
             //yield [|"/%A"; [|typeof<Alpha>|]; "/{%s:alpha}"|]
         }
 
