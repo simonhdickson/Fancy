@@ -52,15 +52,11 @@
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
 
-    let invokeFunctionObj<'b> (instance:obj) parameters =
-        let res = 
+    let invokeFunction (instance: _ -> Async<_>) parameters = async {
+        return! 
             match Array.length parameters with
-            | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|]) 
-            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters)
-        res 
-
-    let invokeFunction (instance:'a->'b) parameters = async {
-        return box (invokeFunctionObj instance parameters |> Async.RunSynchronously)
+            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) 
+            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters))
     }
 
     let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
@@ -97,17 +93,6 @@
         let url' = printHelper nancyString paramterNames
         (url', parameters)
 
-    /// This tuple is the response summary information we use to let Nancy build it
-    type response<'b> = int * 'b * (string * string) list
-    /// This function takes a response and returns a Nancy response negoriator 
-    let negotiate (src:response<_>) (negotiator:Nancy.Responses.Negotiation.Negotiator) =
-        match src with
-        | code, content, headers -> 
-            box (negotiator
-                .WithStatusCode(code)
-                .WithHeaders(List.toArray headers)
-                .WithModel(content))
-
     /// This is derived from the StateBuilder in fsharpx                  
     type State<'T, 'State> = 'State -> 'T * 'State
     let getState = fun s -> (s,s)
@@ -121,7 +106,7 @@
         member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
 
         [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Get(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<Negotiator>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor 
             this.Bind(state, fun _ ->
@@ -132,7 +117,7 @@
                     putState nancyModule))
                 
         [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Post(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+        member this.Post(state, url:StringFormat<'a->'b,'c>, processor) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor 
             this.Bind(state, fun _ ->
@@ -143,7 +128,7 @@
                     putState nancyModule)) 
 
         [<CustomOperation("put", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Put(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+        member this.Put(state, url:StringFormat<'a->'b,'c>, processor) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor 
             this.Bind(state, fun _ ->
@@ -154,7 +139,7 @@
                     putState nancyModule)) 
 
         [<CustomOperation("delete", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor 
             this.Bind(state, fun _ ->
@@ -176,7 +161,7 @@
 //                    putState nancyModule)) 
 
         [<CustomOperation("options", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Options(state, url:StringFormat<'a->'b,'c>, processor:NancyModule -> 'a -> Async<Negotiator>) =
+        member this.Options(state, url:StringFormat<'a->'b,'c>, processor) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor 
             this.Bind(state, fun _ ->
@@ -191,5 +176,4 @@
     [<AbstractClass>]
     type Fancy(pipeline:State<unit,NancyModule>) as this =
         inherit NancyModule()
-        do
-        exec pipeline this |> ignore
+        do exec pipeline this |> ignore
