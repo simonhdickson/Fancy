@@ -15,6 +15,22 @@
 
     open Common
 
+    // Because nancy expects an object to do with as she may see fit
+    // and because we want to handle our routes in an async context
+    // we added the box function to the return function of the AsyncBuilder.
+    // A fancy function now has the signature NancyModule -> 'a -> Async<obj>,
+    // but you can choose to return a string, a Nancy Negotiator, JSON or whatever
+    // Nancy has a serializer for. 
+    type BoxedAsyncBuilder () =
+        member this.Bind (computation,binder) = async {
+            let! arg = computation
+            return! binder arg
+        }
+        member this.ReturnFrom = async.ReturnFrom
+        member this.Return x = async.Return (box x)
+
+    let fancyAsync = new BoxedAsyncBuilder ()
+
     /// Takes an object that represents a function of a'->'b and returns a list of all parameters
     /// required to invoke it
     let getParametersFromObj (instance:obj) =
@@ -51,13 +67,20 @@
         dict
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
+    
+    let uitEnWeerInPakker (a: Async<Negotiator>) : Async<obj> = async {
+        let result = a |> Async.RunSynchronously
+        return box result
+    }
 
-    let invokeFunction (instance: _ -> Async<_>) parameters = async {
+    let invokeFunction (instance: _ -> Async<_>) parameters : Async<obj> = async {
         return! 
             match Array.length parameters with
-            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) 
-            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters))
+            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) //|> uitEnWeerInPakker
+            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters)) //|> uitEnWeerInPakker
     }
+
+
 
     let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
         match list with
@@ -76,7 +99,7 @@
     let formatNancyString inputString (types:Type array) =
         applyReplace inputString "%." (fun (s, i) -> toNancyParameter (s, types.[i]))
 
-    let requestWrapper parameters (processor: 'a -> Async<Negotiator>) (dictionary:obj) = async {
+    let requestWrapper parameters (processor) (dictionary:obj) = async {
         return!
             (dictionary :?> DynamicDictionary)
             |> dynamicDictionaryToMap
@@ -106,14 +129,13 @@
         member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
 
         [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<Negotiator>) =
-            // parsing is required for typesafe processor
-            let (parsedUrl, parameters) = parseUrl url.Value processor 
+        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: NancyModule -> 'a -> Async<obj>) =
             this.Bind(state, fun _ ->
                 this.Bind(getState, fun (nancyModule:NancyModule) ->
-                    let processorWithContext = processor nancyModule
+                    // parsing is required for typesafe processor
+                    let (parsedUrl, parameters) = parseUrl url.Value processor
                     do nancyModule.Get.[parsedUrl, true] <- fun i cancelationToken -> 
-                        Async.StartAsTask (requestWrapper parameters processorWithContext i)
+                        Async.StartAsTask (requestWrapper parameters (processor nancyModule) i)
                     putState nancyModule))
                 
         [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
