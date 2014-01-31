@@ -21,15 +21,16 @@ let barry x = async { return x }
 
 type Pipeline() as this = 
     inherit NancyModule()
-   
-    let fancy = new FancyBuilder<Pipeline>(this)
-   
-    let routes = fancy {
+      
+    do fancy this {
         get "/%s" (fun s -> fancyAsync {
-            return this.s
+            return this.Negotiate.WithModel({name = this.s})
+        })
+
+        get "/test" (fun () -> fancyAsync {
+            return System.Threading.Thread.CurrentThread.ManagedThreadId.ToString()
         })
     }
-    do Fancy.exec routes this |> ignore
 
     member this.s = "Bert"
 
