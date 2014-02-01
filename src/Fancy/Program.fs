@@ -122,7 +122,7 @@
     type FancyBuilder(nancyModule: NancyModule) =
         member this.Return(a) = a
         
-        member private this.routeDelegateBuilder (processor, parameters, nancyModule) = 
+        member private this.routeDelegateBuilder (processor, parameters) = 
             fun dictionary cancelationToken -> 
                 Async.StartAsTask (requestWrapper parameters processor dictionary)
 
@@ -130,30 +130,30 @@
         member this.Get(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
         [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
         member this.Post(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
         [<CustomOperation("put", MaintainsVariableSpaceUsingBind=true)>]
         member this.Put(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)        
+            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)        
 
         [<CustomOperation("delete", MaintainsVariableSpaceUsingBind=true)>]
         member this.Delete(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
 
         [<CustomOperation("options", MaintainsVariableSpaceUsingBind=true)>]
         member this.Options(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters, nancyModule)
+            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
     
     let fancy m = new FancyBuilder(m)
