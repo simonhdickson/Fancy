@@ -13,13 +13,12 @@
     open Nancy.Responses.Negotiation
     open System.Text.RegularExpressions
 
-
-    // Because nancy expects an object to do with as she may see fit
-    // and because we want to handle our routes in an async context
-    // we added the box function to the return function of the AsyncBuilder.
-    // A fancy function now has the signature NancyModule -> 'a -> Async<obj>,
-    // but you can choose to return a string, a Nancy Negotiator, .net object, JSON
-    // or whatever Nancy can serialize to the requested content type. 
+    /// Because nancy expects an object to do with as she may see fit
+    /// and because we want to handle our routes in an async context
+    /// we added the box function to the return function of the AsyncBuilder.
+    /// A fancy function now has the signature NancyModule -> 'a -> Async<obj>,
+    /// but you can choose to return a string, a Nancy Negotiator, .net object, JSON
+    /// or whatever Nancy can serialize to the requested content type. 
     type BoxedAsyncBuilder () =
         member this.Bind (computation,binder) = async {
             let! arg = computation
@@ -34,7 +33,6 @@
     /// required to invoke it
     let getParametersFromObj (instance:obj) =
         instance.GetType().GetMethods().[0].GetParameters()
-        // |> Seq.skip 1 // chop of the first parameter for the nancymodule itself (context needed for returning the right negotiator)
         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
         |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
       
@@ -66,20 +64,13 @@
         dict
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
-    
-    let uitEnWeerInPakker (a: Async<Negotiator>) : Async<obj> = async {
-        let result = a |> Async.RunSynchronously
-        return box result
-    }
-
-    let invokeFunction (instance: _ -> Async<_>) parameters : Async<obj> = async {
+  
+    let invokeFunction (instance) parameters : Async<obj> = async {
         return! 
             match Array.length parameters with
-            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) //|> uitEnWeerInPakker
-            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters)) //|> uitEnWeerInPakker
+            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) 
+            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters))
     }
-
-
 
     let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
         match list with
@@ -127,31 +118,32 @@
                 Async.StartAsTask (requestWrapper parameters processor dictionary)
 
         [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Get(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
+        member this.Get(state, url:StringFormat<'a -> 'b,'z>, processor: ('a) -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
+
         [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Post(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
+        member this.Post(state, url:StringFormat<'a->'b,'c>, processor: 'a -> 'b -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
         [<CustomOperation("put", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Put(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
+        member this.Put(state, url:StringFormat<'a->'b,'c>, processor: 'a -> 'b -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)        
 
         [<CustomOperation("delete", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
+        member this.Delete(state, url:StringFormat<'a->'b,'c>, processor: 'a -> 'b -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
 
         [<CustomOperation("options", MaintainsVariableSpaceUsingBind=true)>]
-        member this.Options(state, url:StringFormat<'a->'b,'c>, processor: 'a -> Async<obj>) =
+        member this.Options(state, url:StringFormat<'a->'b,'c>, processor: 'a -> 'b -> Async<obj>) =
             // parsing is required for typesafe processor
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
