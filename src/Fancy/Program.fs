@@ -1,6 +1,7 @@
 ﻿module Fancy
     open System 
     open System.Threading
+    open System.Reflection
     open System.Linq 
     open System.ComponentModel   
     open Printf
@@ -10,6 +11,8 @@
 
     let urlVarRegex = Regex(@"%[\w-\._~]+", RegexOptions.Compiled)
 
+    let peel p = p.GetType().GetMethods().[0]
+    
     /// Because nancy expects an object to do with as she may see fit
     /// and because we want to handle our routes in an async context
     /// we added the box function to the return function of the AsyncBuilder.
@@ -30,8 +33,8 @@
 
     /// Takes an object that represents a function of a'->'b and returns a list of all parameters
     /// required to invoke it
-    let getParameters (instance:obj) =
-        instance.GetType().GetMethods().[0].GetParameters()
+    let getParameters (instance:MethodInfo) =
+        instance.GetParameters()
         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
         |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
 
@@ -68,11 +71,11 @@
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
   
-    let invokeFunction instance parameters  : Async<obj> = async {
+    let invokeFunction (instance:MethodInfo) parameters  : Async<obj> = async {
         return!
             match Array.length parameters with
-            | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
-            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters) 
+            | 0 -> instance.Invoke(instance, [|()|])
+            | _ -> instance.Invoke(instance, parameters) 
             |> unbox
     }
 
@@ -113,28 +116,33 @@
 
         [<CustomOperation("get")>]
         member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
             
         [<CustomOperation("post")>]
         member this.Post (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
         
         [<CustomOperation("put")>]
         member this.Put (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)        
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)        
 
         [<CustomOperation("delete")>]
         member this.Delete (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
 
         [<CustomOperation("options")>]
         member this.Options (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let (parsedUrl, parameters) = parseUrl url.Value processor
-            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
     
 
     /// The fancy compution builder use this to write your modules for nancy in f#

@@ -32,7 +32,7 @@
     type ExampleModule() as this = 
         inherit Nancy.NancyModule()
         do fancy this {
-            get "/"  (fun () -> fancyAsync { return "Hello World!" } )
+            get "/" (fun () -> fancyAsync { return "Hello World!" } )
         }
          
     let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
