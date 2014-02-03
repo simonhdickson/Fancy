@@ -115,27 +115,27 @@
                 Async.StartAsTask (requestWrapper parameters processor dictionary)
 
         [<CustomOperation("get")>]
-        member this.Get (url:StringFormat<'a, 'z>) (processor:'a) =
+        member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
             
         [<CustomOperation("post")>]
-        member this.Post (url:StringFormat<'a, 'z>) (processor:'a) =
+        member this.Post (source, url:StringFormat<'a, 'z>, processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
         [<CustomOperation("put")>]
-        member this.Put (url:StringFormat<'a, 'z>) (processor:'a) =
+        member this.Put (source, url:StringFormat<'a, 'z>, processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)        
 
         [<CustomOperation("delete")>]
-        member this.Delete (url:StringFormat<'a, 'z>) (processor:'a) =
+        member this.Delete (source, url:StringFormat<'a, 'z>, processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
 
         [<CustomOperation("options")>]
-        member this.Options (url:StringFormat<'a, 'z>) (processor:'a) =
+        member this.Options (source, url:StringFormat<'a, 'z>, processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
     
