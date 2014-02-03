@@ -2,15 +2,9 @@
     open System 
     open System.Linq 
     open System.ComponentModel   
-    open System.Dynamic
     open Printf
     open Microsoft.FSharp.Reflection
-    open Microsoft.FSharp.Quotations   
-    open Microsoft.FSharp.Quotations.Patterns 
-    open Microsoft.FSharp.Quotations.DerivedPatterns
     open Nancy             
-    open Nancy.Bootstrapper
-    open Nancy.Responses.Negotiation
     open System.Text.RegularExpressions
 
     let urlVarRegex = Regex(@"%[\w-\._~]+", RegexOptions.Compiled)
