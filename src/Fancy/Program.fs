@@ -1,137 +1,170 @@
 ﻿module Fancy
-open System 
-open System.Linq 
-open System.ComponentModel   
-open System.Dynamic
-open Printf
+    open System 
+    open System.Threading
+    open System.Reflection
+    open System.Linq 
+    open System.ComponentModel   
+    open Printf
+    open Microsoft.FSharp.Reflection
+    open Nancy             
+    open System.Text.RegularExpressions
 
-open Microsoft.FSharp.Reflection
-open Microsoft.FSharp.Quotations   
-open Microsoft.FSharp.Quotations.Patterns 
-open Microsoft.FSharp.Quotations.DerivedPatterns
-open Nancy             
-open Nancy.Bootstrapper
+    let urlVarRegex = Regex(@"%[\w-\._~]+", RegexOptions.Compiled)
 
-open Common
-
-/// Takes an object that represents a function of a'->'b and returns a list of all parameters
-/// required to invoke it
-let getParametersFromObj (instance:obj) =
-    instance.GetType().GetMethods().[0].GetParameters()
-    |> Seq.map (fun parameter-> parameter.Name, parameter.ParameterType)
-    |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
-      
-let getParameters (instance:'a->'b) =
-    getParametersFromObj instance
-
-let makeSingleUnion (unionType:Type) (parameter:obj) =
-    let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
-    FSharpValue.MakeUnion(unionInfo, [| parameter |])
-
-/// This function converts a value between equivalent types
-/// ie. from int64 -> int32
-let changeOrConvertType value (targetType:Type) =
-    let converter = TypeDescriptor.GetConverter targetType
-    match converter.CanConvertFrom(value.GetType()) with
-    | true -> converter.ConvertFrom(value)
-    | false -> Convert.ChangeType(value, targetType)
+    let peel p = (p, p.GetType().GetMethods().[0])
     
-let matchParameters expectedParameters (dict:Map<_,_>) =
-    expectedParameters
-    |> Seq.map (fun (name:string,targetType) -> dict.[name], targetType)
-    |> Seq.map (fun (value,targetType) ->
-        match value with 
-        | x when x.GetType() = targetType -> x  
-        | x when FSharpType.IsUnion(targetType) -> makeSingleUnion targetType x 
-        | x -> changeOrConvertType x targetType)
+    /// Because nancy expects an object to do with as she may see fit
+    /// and because we want to handle our routes in an async context
+    /// we added the box function to the return function of the AsyncBuilder.
+    /// A fancy function now has the signature 'a -> Async<obj>,
+    /// but you can choose to return a string, a Nancy Negotiator, .net object, JSON
+    /// or whatever Nancy can serialize to the requested content type. 
+    type BoxedAsyncBuilder () =
+        member this.Bind (computation,binder) = async {
+            let! arg = computation
+            return! binder arg
+        }
+        member this.ReturnFrom = async.ReturnFrom
+        member this.Return x = async.Return (box x)
 
-let dynamicDictionaryToMap (dict:DynamicDictionary) =
-    dict
-    |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
-    |> Map.ofSeq
+    /// Fancy specific async builder.
+    /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
+    let fancyAsync = new BoxedAsyncBuilder ()
 
-let invokeFunctionObj (instance:obj) parameters =
-    match Array.length parameters with
-    | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
-    | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters)
+    /// Takes an object that represents a function of 'a->'b and returns a list of all parameters
+    /// required to invoke it
+    let getParameters (instance:(obj * MethodInfo)) =
+        match instance with
+        | (_, meth) -> meth.GetParameters()
+                         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
+                         |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
 
-let invokeFunction (instance:'a->'b) parameters =
-    invokeFunctionObj instance parameters
+    let makeSingleUnion (unionType:Type) (parameter:obj) =
+        let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
+        FSharpValue.MakeUnion(unionInfo, [| parameter |])
 
-let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
-    match list with
-    | [] -> sprintf <| Printf.StringFormat<_> fmt
-    | s :: rest -> printHelper<string -> 'a> fmt rest s
+    /// This function converts a value between equivalent types
+    /// ie. from int64 -> int32
+    let changeOrConvertType value (targetType:Type) =
+        let converter = TypeDescriptor.GetConverter targetType
+        match converter.CanConvertFrom(value.GetType()) with
+        | true -> converter.ConvertFrom(value)
+        | false -> Convert.ChangeType(value, targetType)
+    
+    let matchParameters expectedParameters cancellationToken (dict:Map<_,_>) =
+        expectedParameters
+        |> Seq.map (fun (name:string,targetType) -> 
+            match (Map.containsKey name dict) with
+            | true -> dict.[name], targetType
+            | false -> match targetType with 
+                       | t when t = typeof<CancellationToken> -> cancellationToken, targetType
+                       | _ -> failwith (sprintf "Unmapped Parameter! type: %O name: %s" targetType name)
+                
+        )
+        |> Seq.map (fun (value,targetType) ->
+            match value with 
+            | x when x.GetType() = targetType -> x  
+            | x when FSharpType.IsUnion(targetType) -> makeSingleUnion targetType x 
+            | x -> changeOrConvertType x targetType)
 
-let toNancyParameter input =
-    match input with
-    | _, sType when sType = typeof<string> -> "{%s}" 
-    | "%i", _ -> "{%s:int}"
-    | "%b", _ -> "{%s:bool}"
-    | "%d", _ -> "{%s:decimal}"
-    | "%A", sType -> "{%s:" + sType.Name.ToLower() + "}"
-    | _ -> failwith "Unsupported"
+    let dynamicDictionaryToMap (dict:DynamicDictionary) =
+        dict
+        |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
+        |> Map.ofSeq
+  
+    let invokeFunction (instance:(obj * MethodInfo)) parameters  : Async<obj> = async {
+        return!
+            match instance with 
+            | (obj1, instance) -> 
+                match Array.length parameters with
+                | 0 -> instance.Invoke(obj1, [|()|])
+                | _ -> instance.Invoke(obj1, parameters) 
+                |> unbox
+    }
 
-let formatNancyString inputString (types:Type array) =
-    applyReplace inputString "%." (fun (s, i) -> toNancyParameter (s, types.[i]))
+    let toNancyParameter input =
+        match input with
+        | name, sType when sType = typeof<int> -> "{" + name + ":int}"
+        | name, sType when sType = typeof<bool> -> "{" + name + ":bool}"
+        | name, sType when sType = typeof<decimal> -> "{" + name + ":decimal}"
+        | name, sType when sType = typeof<Guid> -> "{" + name + ":guid}"
+        | name, sType when sType = typeof<DateTime> -> "{" + name + ":datetime}"
+        | name, sType -> "{" + name + "}"
 
-let requestWrapper (this:NancyModule) parameters processor (dictionary:obj) =
-    (dictionary :?> DynamicDictionary)
-    |> dynamicDictionaryToMap
-    |> matchParameters parameters
-    |> Seq.toArray
-    |> invokeFunction processor
+    let rec formatNancyString inputString (types: (string * Type) list) =
+        match types with
+        | [] -> inputString
+        | head::tail -> formatNancyString (urlVarRegex.Replace (inputString, (toNancyParameter head), 1)) (tail)
+        
+    let requestWrapper parameters processor (dictionary:obj) cancellationToken = async {
+        return!
+            (dictionary :?> DynamicDictionary)
+            |> dynamicDictionaryToMap
+            |> matchParameters parameters cancellationToken
+            |> Seq.toArray
+            |> invokeFunction processor 
+    }
 
-let parseUrl (url:string) processor =              
-    let formatArgCount = url.Count(fun i -> i = '%')
-    let parameters = getParameters processor
-    let nancyString = (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray))
-    let paramterNames = (Seq.map (fun (i,_) -> i) parameters |> Seq.take formatArgCount |>  Seq.toList)
-    let url' = printHelper nancyString paramterNames
-    (url', parameters)
+    let parseUrl url processor =              
+        let parameters = getParameters processor
+        let nancyString = (formatNancyString url (parameters |> Seq.toList))
+        (nancyString, parameters)
+                                                         
+    type FancyBuilder(nancyModule: NancyModule) =
+        member this.Yield(a) = a
 
-/// This is derived from the StateBuilder in fsharpx                  
-type State<'T, 'State> = 'State -> 'T * 'State
-let getState = fun s -> (s,s)
-let putState s = fun _ -> ((),s)
-let exec m s = m s |> snd
-let bind k m = fun s -> let (a, s') = m s in (k a) s'
-                                          
-type FancyBuilder() =
-    member this.Return(a) : State<'T,'State> = fun s -> (a,s)
-    member this.Bind(m:State<'T,'State>, k:'T -> State<'U,'State>) : State<'U,'State> = bind k m
-    member this.Combine(r1, r2) = this.Bind(r1, fun () -> r2)
-    [<CustomOperation("get", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Get(m, url:StringFormat<'a->'b,'c>, processor:'a->(IResponseFormatter->'b)) =
-        let (url', parameters) = parseUrl url.Value processor
-        this.Bind(m, fun _ ->
-            this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Get.[url'] <- fun i ->  let result = requestWrapper nancyModule parameters processor i
-                                                       invokeFunctionObj result [|nancyModule.Response|]
-                putState nancyModule))  
-    [<CustomOperation("post", MaintainsVariableSpaceUsingBind=true)>]
-    member this.Post(m, url:StringFormat<'a->'b,'c>, processor:'a->(IResponseFormatter->'b)) =
-        let (url', parameters) = parseUrl url.Value processor
-        this.Bind(m, fun _ ->
-            this.Bind(getState, fun (nancyModule:NancyModule) ->
-                do nancyModule.Post.[url'] <- fun i -> let result = requestWrapper nancyModule parameters processor i
-                                                       invokeFunctionObj result [|nancyModule.Response|]
-                putState nancyModule))
-let fancy = new FancyBuilder()
+        member private this.routeDelegateBuilder (processor, parameters) = 
+            fun dictionary cancellationToken -> 
+                Async.StartAsTask (requestWrapper parameters processor dictionary cancellationToken)
 
-[<AbstractClass>]
-type Fancy(pipeline:State<unit,NancyModule>) as this =
-    inherit NancyModule()
-    do
-        exec pipeline this |> ignore
+        [<CustomOperation("before")>]
+        member this.Before(source, processor) =
+            do nancyModule.Before.AddItemToEndOfPipeline(fun ctx c -> Async.StartAsTask(processor ctx c))
 
-type Alpha = Alpha of string
+        [<CustomOperation("after")>]
+        member this.After(source, processor) =
+            do nancyModule.After.AddItemToEndOfPipeline(fun ctx c -> startAsPlainTask(processor ctx c))
+            
+        [<CustomOperation("get")>]
+        member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+            
+        [<CustomOperation("post")>]
+        member this.Post (source, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+        
+        [<CustomOperation("put")>]
+        member this.Put (source, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)        
 
-let asPlainText output (this:IResponseFormatter) =
-    this.AsText(output)
+        [<CustomOperation("delete")>]
+        member this.Delete (source, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
 
-let asJson output (this:IResponseFormatter) =
-    this.AsJson(output)
+        [<CustomOperation("options")>]
+        member this.Options (source, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+    
 
-let asXml output (this:IResponseFormatter) =
-    this.AsXml(output)
+    /// The fancy compution builder use this to write your modules for nancy in f#
+    /// example: 
+    /// <c>
+    /// type ExampleModule() as this = 
+    ///     inherit Nancy.NancyModule()
+    ///     do fancy this {
+    ///         get "/"  (fun () -> fancyAsync { return "Hello World!" } )
+    ///     }
+    /// </c>
+    /// <param name="m">The Nancy Module</param>
+    /// <returns>Unit</returns>
+    let fancy m = new FancyBuilder(m)
