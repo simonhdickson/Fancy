@@ -27,11 +27,11 @@
             })
 
             get "/tes" (fun () -> fancyAsync {
-                return "hond!"
+                return "She's a dog!"
             })
 
             after (fun ctx c -> async {
-                ctx.Response.Contents <- ctx.Response.Contents ++ Action<Stream>(fun s -> s.Write(System.Text.Encoding.UTF8.GetBytes("Ja zeker!"), 0, 8))
+                ctx.Response.Contents <- ctx.Response.Contents ++ Action<Stream>(fun s -> s.Write(System.Text.Encoding.UTF8.GetBytes("For sure!"), 0, 9))
             })
         }
 
