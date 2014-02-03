@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy", "src\Fancy\Fancy.fsproj", "{ABA1D8E3-DCC7-4054-909A-1F99AE626374}"
 EndProject
@@ -21,6 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		build.bat = build.bat
 		build.fsx = build.fsx
 		fancy.nuspec = fancy.nuspec
+		readme.md = readme.md
 		ReleaseNotes.md = ReleaseNotes.md
 	EndProjectSection
 EndProject
