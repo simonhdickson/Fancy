@@ -33,7 +33,7 @@
     let getParameters (instance:obj) =
         instance.GetType().GetMethods().[0].GetParameters()
         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
-        |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit> && parameterType <> typeof<CancellationToken>)  
+        |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
 
     let makeSingleUnion (unionType:Type) (parameter:obj) =
         let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
@@ -47,9 +47,16 @@
         | true -> converter.ConvertFrom(value)
         | false -> Convert.ChangeType(value, targetType)
     
-    let matchParameters expectedParameters (dict:Map<_,_>) =
+    let matchParameters expectedParameters cancellationToken (dict:Map<_,_>) =
         expectedParameters
-        |> Seq.map (fun (name:string,targetType) -> dict.[name], targetType)
+        |> Seq.map (fun (name:string,targetType) -> 
+            match (Map.containsKey name dict) with
+            | true -> dict.[name], targetType
+            | false -> match targetType with 
+                       | t when t = typeof<CancellationToken> -> cancellationToken, targetType
+                       | _ -> failwith "Unmapped Parameter! type: %O name: %s" targetType name
+                
+        )
         |> Seq.map (fun (value,targetType) ->
             match value with 
             | x when x.GetType() = targetType -> x  
@@ -61,19 +68,11 @@
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
   
-    let hasCancelationToken instance = 
-        instance.GetType().GetMethods().[0].GetParameters() |> Seq.exists (fun p -> p.ParameterType = typeof<CancellationToken>)
-
-    let invokeFunction instance cancellationToken parameters  : Async<obj> = async {
-        let localparams = 
-            match hasCancelationToken instance with
-            | true -> Seq.append parameters [| cancellationToken |> box |] |> Seq.toArray
-            | false -> parameters |> Seq.toArray
-
-        return! 
+    let invokeFunction instance parameters  : Async<obj> = async {
+        return!
             match Array.length parameters with
             | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
-            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, localparams) 
+            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters) 
             |> unbox
     }
 
@@ -95,9 +94,9 @@
         return!
             (dictionary :?> DynamicDictionary)
             |> dynamicDictionaryToMap
-            |> matchParameters parameters
+            |> matchParameters parameters cancellationToken
             |> Seq.toArray
-            |> invokeFunction processor cancellationToken
+            |> invokeFunction processor 
     }
 
     let parseUrl url processor =              
@@ -109,7 +108,7 @@
         member this.Yield(a) = a
 
         member private this.routeDelegateBuilder (processor, parameters) = 
-            fun dictionary cancellationToken -> 
+            fun dictionary (cancellationToken: CancellationToken) -> 
                 Async.StartAsTask (requestWrapper parameters processor dictionary cancellationToken)
 
         [<CustomOperation("get")>]
@@ -137,4 +136,16 @@
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
     
+
+    /// The fancy compution builder use this to write your modules for nancy in f#
+    /// example: 
+    /// <c>
+    /// type ExampleModule() as this = 
+    ///     inherit Nancy.NancyModule()
+    ///     do fancy this {
+    ///         get "/"  (fun () -> fancyAsync { return "Hello World!" } )
+    ///     }
+    /// </c>
+    /// <param name="m">The Nancy Module</param>
+    /// <returns>Unit</returns>
     let fancy m = new FancyBuilder(m)

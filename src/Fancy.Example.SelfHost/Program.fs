@@ -16,7 +16,6 @@
 
     type TestModule() as this = 
         inherit NancyModule()
-      
         do fancy this {
             get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
                 let a = "%"
@@ -30,6 +29,12 @@
 
         member this.s = "Bert"
         
+    type ExampleModule() as this = 
+        inherit Nancy.NancyModule()
+        do fancy this {
+            get "/"  (fun () -> fancyAsync { return "Hello World!" } )
+        }
+         
     let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
     nancyHost.Start()  
     Console.ReadLine() |> ignore
