@@ -17,17 +17,17 @@
         inherit NancyModule()
       
         do fancy this {
-            get "/%s" (fun s -> fancyAsync {
+            get "/%s/%d/%s" (fun s i s1 -> fancyAsync {
                 return this.Negotiate.WithModel({name = this.s})
             })
 
-            get "/test" (fun () -> fancyAsync {
-                return System.Threading.Thread.CurrentThread.ManagedThreadId.ToString()
+            get "/tes" (fun () -> fancyAsync {
+                return "hond!"
             })
         }
 
         member this.s = "Bert"
-    
+        
     let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
     nancyHost.Start()  
     Console.ReadLine() |> ignore
