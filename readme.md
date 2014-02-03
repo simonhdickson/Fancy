@@ -6,10 +6,11 @@ Install
 >Install-Package Fanciful -Pre
 
 ```fsharp
-let pipeline =
-    fancy {
-        get "/" (fun () -> asPlainText "Hello World!")
+type ExampleModule() as this = 
+    inherit NancyModule()
+    do fancy this {
+        get "/" (fun () -> fancyAsync { return "Hello World!" } )
     }
 ```
 
-Check this [blog post](http://simonhdickson.github.io/) for more information
+Check this [blog post](http://simonhdickson.github.io/) or the [documentation](http://simonhdickson.github.io/Fancy/) for more information

@@ -19,7 +19,7 @@ let description = """
 let tags = "F# fsharp nancy fanciful"
 
 Target "Clean" (fun _ ->
-    CleanDirs [buildDir; testDir; nugetDir]
+    CleanDirs [buildDir; testDir; nugetDir; "./temp/"]
 )
 
 Target "Build" (fun _ ->

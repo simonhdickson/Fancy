@@ -32,3 +32,4 @@ build/*
 nuget/*
 test/*
 docs/output/*
+temp/*
