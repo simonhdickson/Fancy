@@ -21,7 +21,7 @@
                 return this.Negotiate.WithModel({name = this.s})
             })
 
-            get "/tes" (fun () -> fancyAsync {
+            get "/tes/%A" (fun (a:Guid) -> fancyAsync {
                 return "hond!"
             })
         }

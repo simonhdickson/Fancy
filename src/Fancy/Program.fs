@@ -13,6 +13,8 @@
     open Nancy.Responses.Negotiation
     open System.Text.RegularExpressions
 
+    let urlVarRegex = Regex(@"%[\w-\._~]+", RegexOptions.Compiled)
+
     /// Because nancy expects an object to do with as she may see fit
     /// and because we want to handle our routes in an async context
     /// we added the box function to the return function of the AsyncBuilder.
@@ -65,31 +67,25 @@
     let invokeFunction (instance) parameters : Async<obj> = async {
         return! 
             match Array.length parameters with
-            | 0 -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, [|()|])) 
-            | _ -> unbox (instance.GetType().GetMethods().[0].Invoke(instance, parameters))
+            | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
+            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters) 
+            |> unbox
     }
-
-    let rec printHelper<'a> (fmt:string) (list:string list) : 'a =
-        match list with
-        | [] -> sprintf <| Printf.StringFormat<_> fmt
-        | s :: rest -> printHelper<string -> 'a> fmt rest s
 
     let toNancyParameter input =
         match input with
-        | _, sType when sType = typeof<string> -> "{%s}" 
-        | "%i", _ -> "{%s:int}"
-        | "%b", _ -> "{%s:bool}"
-        | "%d", _ -> "{%s:decimal}"
-        | "%A", sType -> "{%s:" + sType.Name.ToLower() + "}"
-        | _ -> failwith "Unsupported"
+        | name, sType when sType = typeof<int> -> "{" + name + ":int}"
+        | name, sType when sType = typeof<bool> -> "{" + name + ":bool}"
+        | name, sType when sType = typeof<decimal> -> "{" + name + ":decimal}"
+        | name, sType when sType = typeof<Guid> -> "{" + name + ":guid}"
+        | name, sType when sType = typeof<DateTime> -> "{" + name + ":datetime}"
+        | name, sType -> "{" + name + "}"
 
-    let applyReplace inputString regex f =
-        let index = ref -1
-        Regex.Replace(inputString, regex, fun (m:Match) -> index:=!index+1; f (m.Value,!index))
-
-    let formatNancyString inputString (types:Type array) =
-        applyReplace inputString "%." (fun (s, i) -> toNancyParameter (s, types.[i]))
-
+    let rec formatNancyString inputString (types: (string * Type) list) =
+        match types with
+        | [] -> inputString
+        | head::tail -> formatNancyString (urlVarRegex.Replace (inputString, (toNancyParameter head), 1)) (tail)
+        
     let requestWrapper parameters (processor) (dictionary:obj) = async {
         return!
             (dictionary :?> DynamicDictionary)
@@ -99,13 +95,10 @@
             |> invokeFunction processor
     }
 
-    let parseUrl (url:string) processor =              
-        let formatArgCount = url.Count(fun i -> i = '%')
+    let parseUrl url processor =              
         let parameters = getParameters processor
-        let nancyString = (formatNancyString url (parameters |> Seq.map snd |> Seq.toArray))
-        let paramterNames = (Seq.map (fun (i,_) -> i) parameters |> Seq.take formatArgCount |>  Seq.toList)
-        let url' = printHelper nancyString paramterNames
-        (url', parameters)
+        let nancyString = (formatNancyString url (parameters |> Seq.toList))
+        (nancyString, parameters)
                                                          
     type FancyBuilder(nancyModule: NancyModule) =
         member this.Yield(a) = a
