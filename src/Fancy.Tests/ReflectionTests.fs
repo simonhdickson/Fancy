@@ -15,7 +15,7 @@ module ReflectionTests =
 
     [<Theory; PropertyData("functions with paramaters")>]
     let ``parses parameters of function correctly`` (func:obj) (expected:(string*Type) seq) =
-        let result = getParametersFromObj func
+        let result = getParameters func
         for (expectedName,expectedtype),(name,``type``) in Seq.zip expected result do
             Assert.Equal<string>(expectedName, name)       
             Assert.Equal<Type>(expectedtype, ``type``)

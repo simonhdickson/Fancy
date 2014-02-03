@@ -31,13 +31,10 @@
 
     /// Takes an object that represents a function of a'->'b and returns a list of all parameters
     /// required to invoke it
-    let getParametersFromObj (instance:obj) =
+    let getParameters (instance:obj) =
         instance.GetType().GetMethods().[0].GetParameters()
         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
         |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
-      
-    let getParameters (instance) =
-        getParametersFromObj instance
 
     let makeSingleUnion (unionType:Type) (parameter:obj) =
         let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
@@ -118,32 +115,27 @@
                 Async.StartAsTask (requestWrapper parameters processor dictionary)
 
         [<CustomOperation("get")>]
-        member this.Get(state, url:StringFormat<'a, 'z>, processor: 'a) =
-            // parsing is required for typesafe processor
+        member this.Get (url:StringFormat<'a, 'z>) (processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
             
         [<CustomOperation("post")>]
-        member this.Post(state, url:StringFormat<'a,'z>, processor: 'a) =
-            // parsing is required for typesafe processor
+        member this.Post (url:StringFormat<'a, 'z>) (processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
         
         [<CustomOperation("put")>]
-        member this.Put(state, url:StringFormat<'a,'z>, processor: 'a) =
-            // parsing is required for typesafe processor
+        member this.Put (url:StringFormat<'a, 'z>) (processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)        
 
         [<CustomOperation("delete")>]
-        member this.Delete(state, url:StringFormat<'a,'z>, processor: 'a) =
-            // parsing is required for typesafe processor
+        member this.Delete (url:StringFormat<'a, 'z>) (processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
 
         [<CustomOperation("options")>]
-        member this.Options(state, url:StringFormat<'a,'z>, processor: 'a) =
-            // parsing is required for typesafe processor
+        member this.Options (url:StringFormat<'a, 'z>) (processor:'a) =
             let (parsedUrl, parameters) = parseUrl url.Value processor
             do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (processor, parameters)
     
