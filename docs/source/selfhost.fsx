@@ -9,12 +9,12 @@ open Nancy
 open Nancy.Hosting.Self
 open Fancy
 
-let pipeline =
-    fancy {
-        get "/" (fun () -> asPlainText "Hello World!")
-    }     
+type ExampleModule() as this = 
+    inherit Nancy.NancyModule()
+    do fancy this {
+        get "/" (fun () -> fancyAsync { return "Hello World!" } )
+    }
 
-type Pipeline() = inherit Fancy(pipeline)
 
 let nancyHost = new NancyHost(Uri "http://localhost:8888/nancy/") 
 nancyHost.Start()  
