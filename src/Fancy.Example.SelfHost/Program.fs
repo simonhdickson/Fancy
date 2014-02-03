@@ -1,5 +1,6 @@
 ﻿module Program
     open System   
+    open System.Threading 
     open Nancy  
     open Nancy.Responses.Negotiation
     open Nancy.Hosting.Self
@@ -17,7 +18,8 @@
         inherit NancyModule()
       
         do fancy this {
-            get "/%s/%d/%s" (fun s i s1 -> fancyAsync {
+            get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
+                let a = "%"
                 return this.Negotiate.WithModel({name = this.s})
             })
 

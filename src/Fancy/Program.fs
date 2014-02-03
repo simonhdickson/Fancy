@@ -1,5 +1,6 @@
 ﻿module Fancy
     open System 
+    open System.Threading
     open System.Linq 
     open System.ComponentModel   
     open Printf
@@ -12,7 +13,7 @@
     /// Because nancy expects an object to do with as she may see fit
     /// and because we want to handle our routes in an async context
     /// we added the box function to the return function of the AsyncBuilder.
-    /// A fancy function now has the signature NancyModule -> 'a -> Async<obj>,
+    /// A fancy function now has the signature 'a -> Async<obj>,
     /// but you can choose to return a string, a Nancy Negotiator, .net object, JSON
     /// or whatever Nancy can serialize to the requested content type. 
     type BoxedAsyncBuilder () =
@@ -23,6 +24,8 @@
         member this.ReturnFrom = async.ReturnFrom
         member this.Return x = async.Return (box x)
 
+    /// Fancy specific async builder.
+    /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
     let fancyAsync = new BoxedAsyncBuilder ()
 
     /// Takes an object that represents a function of a'->'b and returns a list of all parameters
@@ -30,7 +33,7 @@
     let getParameters (instance:obj) =
         instance.GetType().GetMethods().[0].GetParameters()
         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
-        |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
+        |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit> && parameterType <> typeof<CancellationToken>)  
 
     let makeSingleUnion (unionType:Type) (parameter:obj) =
         let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
@@ -58,11 +61,19 @@
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
   
-    let invokeFunction (instance) parameters : Async<obj> = async {
+    let hasCancelationToken instance = 
+        instance.GetType().GetMethods().[0].GetParameters() |> Seq.exists (fun p -> p.ParameterType = typeof<CancellationToken>)
+
+    let invokeFunction instance cancellationToken parameters  : Async<obj> = async {
+        let localparams = 
+            match hasCancelationToken instance with
+            | true -> Seq.append parameters [| cancellationToken |> box |] |> Seq.toArray
+            | false -> parameters |> Seq.toArray
+
         return! 
             match Array.length parameters with
             | 0 -> instance.GetType().GetMethods().[0].Invoke(instance, [|()|])
-            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, parameters) 
+            | _ -> instance.GetType().GetMethods().[0].Invoke(instance, localparams) 
             |> unbox
     }
 
@@ -80,13 +91,13 @@
         | [] -> inputString
         | head::tail -> formatNancyString (urlVarRegex.Replace (inputString, (toNancyParameter head), 1)) (tail)
         
-    let requestWrapper parameters (processor) (dictionary:obj) = async {
+    let requestWrapper parameters processor (dictionary:obj) cancellationToken = async {
         return!
             (dictionary :?> DynamicDictionary)
             |> dynamicDictionaryToMap
             |> matchParameters parameters
             |> Seq.toArray
-            |> invokeFunction processor
+            |> invokeFunction processor cancellationToken
     }
 
     let parseUrl url processor =              
@@ -98,8 +109,8 @@
         member this.Yield(a) = a
 
         member private this.routeDelegateBuilder (processor, parameters) = 
-            fun dictionary cancelationToken -> 
-                Async.StartAsTask (requestWrapper parameters processor dictionary)
+            fun dictionary cancellationToken -> 
+                Async.StartAsTask (requestWrapper parameters processor dictionary cancellationToken)
 
         [<CustomOperation("get")>]
         member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
