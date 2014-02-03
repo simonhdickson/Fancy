@@ -1,29 +1,37 @@
 ﻿module Program
     open System   
+    open System.IO
     open System.Threading 
     open Nancy  
     open Nancy.Responses.Negotiation
     open Nancy.Hosting.Self
     open Fancy
+    open Operators
     open Microsoft.FSharp.Control
     open Printf
 
     type Person = { name:string }
     type Square = { result:int }
 
-
-    let barry x = async { return x }
-
     type TestModule() as this = 
         inherit NancyModule()
-        do fancy this {
+        do Fancy.fancy this {
+            before (fun ctx c -> async {
+                printf "Hello from the before thingy"
+                return null
+            })
+
             get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
                 let a = "%"
                 return this.Negotiate.WithModel({name = this.s})
             })
 
-            get "/tes/%A" (fun (a:Guid) -> fancyAsync {
+            get "/tes" (fun () -> fancyAsync {
                 return "hond!"
+            })
+
+            after (fun ctx c -> async {
+                ctx.Response.Contents <- ctx.Response.Contents ++ Action<Stream>(fun s -> s.Write(System.Text.Encoding.UTF8.GetBytes("Ja zeker!"), 0, 8))
             })
         }
 

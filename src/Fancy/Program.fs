@@ -11,7 +11,7 @@
 
     let urlVarRegex = Regex(@"%[\w-\._~]+", RegexOptions.Compiled)
 
-    let peel p = p.GetType().GetMethods().[0]
+    let peel p = (p, p.GetType().GetMethods().[0])
     
     /// Because nancy expects an object to do with as she may see fit
     /// and because we want to handle our routes in an async context
@@ -31,12 +31,13 @@
     /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
     let fancyAsync = new BoxedAsyncBuilder ()
 
-    /// Takes an object that represents a function of a'->'b and returns a list of all parameters
+    /// Takes an object that represents a function of 'a->'b and returns a list of all parameters
     /// required to invoke it
-    let getParameters (instance:MethodInfo) =
-        instance.GetParameters()
-        |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
-        |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
+    let getParameters (instance:(obj * MethodInfo)) =
+        match instance with
+        | (_, meth) -> meth.GetParameters()
+                         |> Seq.map (fun parameter -> parameter.Name, parameter.ParameterType)
+                         |> Seq.where (fun (_,parameterType) -> parameterType <> typeof<unit>)  
 
     let makeSingleUnion (unionType:Type) (parameter:obj) =
         let unionInfo = FSharpType.GetUnionCases(unionType) |> Seq.exactlyOne
@@ -57,7 +58,7 @@
             | true -> dict.[name], targetType
             | false -> match targetType with 
                        | t when t = typeof<CancellationToken> -> cancellationToken, targetType
-                       | _ -> failwith "Unmapped Parameter! type: %O name: %s" targetType name
+                       | _ -> failwith (sprintf "Unmapped Parameter! type: %O name: %s" targetType name)
                 
         )
         |> Seq.map (fun (value,targetType) ->
@@ -71,12 +72,14 @@
         |> Seq.map (fun key -> key, (dict.[key] :?> DynamicDictionaryValue).Value)
         |> Map.ofSeq
   
-    let invokeFunction (instance:MethodInfo) parameters  : Async<obj> = async {
+    let invokeFunction (instance:(obj * MethodInfo)) parameters  : Async<obj> = async {
         return!
-            match Array.length parameters with
-            | 0 -> instance.Invoke(instance, [|()|])
-            | _ -> instance.Invoke(instance, parameters) 
-            |> unbox
+            match instance with 
+            | (obj1, instance) -> 
+                match Array.length parameters with
+                | 0 -> instance.Invoke(obj1, [|()|])
+                | _ -> instance.Invoke(obj1, parameters) 
+                |> unbox
     }
 
     let toNancyParameter input =
@@ -111,9 +114,17 @@
         member this.Yield(a) = a
 
         member private this.routeDelegateBuilder (processor, parameters) = 
-            fun dictionary (cancellationToken: CancellationToken) -> 
+            fun dictionary cancellationToken -> 
                 Async.StartAsTask (requestWrapper parameters processor dictionary cancellationToken)
 
+        [<CustomOperation("before")>]
+        member this.Before(source, processor) =
+            do nancyModule.Before.AddItemToEndOfPipeline(fun ctx c -> Async.StartAsTask(processor ctx c))
+
+        [<CustomOperation("after")>]
+        member this.After(source, processor) =
+            do nancyModule.After.AddItemToEndOfPipeline(fun ctx c -> startAsPlainTask(processor ctx c))
+            
         [<CustomOperation("get")>]
         member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
             let peeledProcessor = processor |> peel
