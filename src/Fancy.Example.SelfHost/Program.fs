@@ -3,22 +3,25 @@
     open System.IO
     open System.Threading 
     open Nancy  
+    open Nancy.Responses
     open Nancy.Responses.Negotiation
     open Nancy.Hosting.Self
     open Fancy
-    open Operators
     open Microsoft.FSharp.Control
     open Printf
+
+    let barry = async { return "barry" }
 
     type Person = { name:string }
     type Square = { result:int }
 
     type TestModule() as this = 
         inherit NancyModule()
-        do Fancy.fancy this {
+        do fancy this {
+
             before (fun ctx c -> async {
-                printf "Hello from the before thingy"
-                return null
+                printf "Hello from the before thingy"   
+                return None
             })
 
             get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
@@ -27,11 +30,25 @@
             })
 
             get "/tes" (fun () -> fancyAsync {
-                return "She's a dog!"
+                return "She's a dog"
             })
 
             after (fun ctx c -> async {
-                ctx.Response.Contents <- ctx.Response.Contents ++ Action<Stream>(fun s -> s.Write(System.Text.Encoding.UTF8.GetBytes("For sure!"), 0, 9))
+                match (ctx.Response.ContentType, ctx.Response.StatusCode) with
+                | ("application/json; charset=utf-8", _) -> ()
+                | (_, HttpStatusCode.NotFound) -> 
+                                 ctx.Response
+                                 |> addHeader ("test", "test")
+                                 |> addToContents (fun s -> 
+                                     use sw = new StreamWriter(s)
+                                     sw.Write "(tm) (r) (c)")
+                                 |> ignore
+                | (_,_) ->
+                    ctx.Response 
+                    |> contents (fun s -> 
+                        use sw = new StreamWriter(s)
+                        sw.Write("banananas")) 
+                    |> ignore
             })
         }
 
