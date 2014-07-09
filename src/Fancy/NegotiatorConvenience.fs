@@ -30,7 +30,7 @@ module NegotiatorConvenience
         header: string
         value: string
     }
-        
+    
     type HeaderOrTuple =
     | Header of Header
     | Tuple of (string * string)
@@ -78,7 +78,7 @@ module NegotiatorConvenience
     /// <param name="contentType">Content type value</param>
     /// <returns>Modified negotiator</returns>
     let setContentType contentType negotiator=
-        negotiator |> addHeader "Content-Type" contentType)
+        negotiator |> addHeader "Content-Type" contentType
 
     /// <summary>
     /// Allows the response to be negotiated with any processors available for any content type
