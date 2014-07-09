@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module Convenience
+module ResponseConvenience
     open Nancy
     open System
     open System.IO
