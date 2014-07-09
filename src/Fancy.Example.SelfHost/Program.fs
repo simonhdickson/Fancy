@@ -26,7 +26,10 @@
 
             get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
                 let a = "%"
-                return this.Negotiate.WithModel({name = this.s})
+                return this.Negotiate 
+                       |> ResponseOrNegotiator.Negotiator
+                       |> addModel (Model {name = this.s}) 
+                       |> statusCode (Number 418)
             })
 
             get "/tes" (fun () -> fancyAsync {
@@ -38,13 +41,15 @@
                 | ("application/json; charset=utf-8", _) -> ()
                 | (_, HttpStatusCode.NotFound) -> 
                                  ctx.Response
-                                 |> addHeader ("test", "test")
+                                 |> ResponseOrNegotiator.Response
+                                 |> addHeader "test" "test"
                                  |> addToContents (fun s -> 
                                      use sw = new StreamWriter(s)
                                      sw.Write "(tm) (r) (c)")
                                  |> ignore
                 | (_,_) ->
                     ctx.Response 
+                    |> ResponseOrNegotiator.Response
                     |> contents (fun s -> 
                         use sw = new StreamWriter(s)
                         sw.Write("banananas")) 

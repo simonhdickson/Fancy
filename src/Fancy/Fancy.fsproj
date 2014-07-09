@@ -58,8 +58,8 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
     <Compile Include="Common.fs" />
-    <Compile Include="Convenience.fs" />
     <Compile Include="Program.fs" />
+    <Compile Include="Convenience.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -68,7 +68,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Nancy">
-      <HintPath>..\..\packages\Nancy.0.22.0\lib\net40\Nancy.dll</HintPath>
+      <HintPath>..\..\packages\Nancy.0.23.0\lib\net40\Nancy.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
