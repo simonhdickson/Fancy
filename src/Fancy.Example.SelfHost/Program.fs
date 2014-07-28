@@ -27,9 +27,10 @@
             get "/%s/%d/%s" (fun s i s1 (c:CancellationToken) -> fancyAsync {
                 let a = "%"
                 return this.Negotiate 
-                       |> ResponseOrNegotiator.Negotiator
-                       |> addModel (Model {name = this.s}) 
-                       |> statusCode (Number 418)
+                        |> ResponseOrNegotiator.Negotiator
+                        |> addModel (Model {name = this.s}) 
+                        |> addHeader "vla" "yoghurt"
+                        |> statusCode (Number 418)
             })
 
             get "/tes" (fun () -> fancyAsync {
