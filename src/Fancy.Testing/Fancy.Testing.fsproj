@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\Fancy.Testing.XML</DocumentationFile>
@@ -48,7 +48,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Nancy.Testing">
-      <HintPath>..\packages\Nancy.Testing.0.22.2\lib\net40\Nancy.Testing.dll</HintPath>
+      <HintPath>..\..\packages\Nancy.Testing.0.23.2\lib\net40\Nancy.Testing.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
