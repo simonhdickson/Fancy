@@ -50,7 +50,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 		docs\templates\template.html = docs\templates\template.html
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Testing", "Fancy.Testing\Fancy.Testing.fsproj", "{72CF46B4-CB2E-4572-9663-3D66D995C6D0}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Testing", "src\Fancy.Testing\Fancy.Testing.fsproj", "{72CF46B4-CB2E-4572-9663-3D66D995C6D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
