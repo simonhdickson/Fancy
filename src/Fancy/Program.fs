@@ -1,5 +1,6 @@
 ﻿module Fancy
     open System 
+    open System.IO
     open System.Threading
     open System.Reflection
     open System.Linq 
@@ -26,6 +27,7 @@
         }
         member this.ReturnFrom = async.ReturnFrom
         member this.Return x = async.Return (box x)
+        
 
     /// Fancy specific async builder.
     /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
@@ -109,7 +111,7 @@
         let parameters = getParameters processor
         let nancyString = (formatNancyString url (parameters |> Seq.toList))
         (nancyString, parameters)
-                                                         
+
     type FancyBuilder(nancyModule: NancyModule) =
         member this.Yield(a) = a
 
@@ -119,8 +121,14 @@
 
         [<CustomOperation("before")>]
         member this.Before(source, processor) =
-            do nancyModule.Before.AddItemToEndOfPipeline(fun ctx c -> Async.StartAsTask(processor ctx c))
-
+            do nancyModule.Before.AddItemToEndOfPipeline(
+                fun ctx c -> Async.StartAsTask(async {
+                    let! res = processor ctx c
+                    return match res with 
+                                | Some x -> x
+                                | None -> null
+                }))
+                
         [<CustomOperation("after")>]
         member this.After(source, processor) =
             do nancyModule.After.AddItemToEndOfPipeline(fun ctx c -> startAsPlainTask(processor ctx c))

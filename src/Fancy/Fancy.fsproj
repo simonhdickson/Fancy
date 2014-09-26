@@ -59,7 +59,8 @@
   <ItemGroup>
     <Compile Include="Common.fs" />
     <Compile Include="Program.fs" />
-    <None Include="packages.config" />
+    <Compile Include="Convenience.fs" />
+    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -67,7 +68,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Nancy">
-      <HintPath>..\..\packages\Nancy.0.22.0\lib\net40\Nancy.dll</HintPath>
+      <HintPath>..\..\packages\Nancy.0.23.2\lib\net40\Nancy.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

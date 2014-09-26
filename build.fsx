@@ -11,10 +11,10 @@ let nugetDir = "./nuget/"
 let fsharpCoreDir = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\4.3.1.0"
 
 let project = "Fanciful"
-let authors = ["Simon Dickson"]
+let authors = ["Simon Dickson"; "Remko Boschker"; "Albert-Jan Nijburg"]
 let summary = "A more strongly typed way to use Nancy"
 let description = """
-  An F# friendly wrapper around Nancy, alose aiming for compatibile with Nancy"""
+  An F# friendly wrapper around Nancy, also aiming for compatibility with Nancy"""
 
 let tags = "F# fsharp nancy fanciful"
 
@@ -40,15 +40,39 @@ Target "Test" (fun _ ->
               
 let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "ReleaseNotes.md")
 
-Target "NuGet" (fun _ ->
+Target "NuGetFancy" (fun _ ->
     let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
     let nugetPath = ".nuget/nuget.exe"
-    let nugetlibDir = nugetDir @@ "lib/net45"
+    let nugetlibDir = nugetDir @@ "Fanciful/lib/net45"
     CopyDir nugetlibDir buildDir (fun file -> file.Contains "Fancy.dll")
+    !! "fancy.nuspec" |> Copy (nugetDir @@ "Fanciful") 
     NuGet (fun p -> 
         { p with   
             Authors = authors
-            Project = project
+            Summary = summary
+            Description = description
+            Version = release.NugetVersion
+            Tags = tags
+            OutputPath = nugetDir
+            WorkingDir = nugetDir @@ "Fanciful"
+            ToolPath = nugetPath
+            AccessKey = getBuildParamOrDefault "nugetkey" ""
+            Publish = hasBuildParam "nugetkey"
+            Dependencies = 
+                ["Nancy", GetPackageVersion "./packages/" "Nancy"] })
+        (nugetDir @@ "Fanciful" @@  "fancy.nuspec")
+)
+
+Target "NuGetFancyTesting" (fun _ ->
+    trace "test"
+    let description = description.Replace("\r", "").Replace("\n", "").Replace("  ", " ")
+    let nugetPath = ".nuget/nuget.exe"
+    let nugetlibDir = nugetDir @@ "Fanciful.Testing/lib/net45"
+    CopyDir nugetlibDir buildDir (fun file -> file.Contains "Fancy.Testing.dll")
+    !! "fancy.testing.nuspec" |> Copy (nugetDir @@ "Fanciful.Testing") 
+    NuGet (fun p -> 
+        { p with   
+            Authors = authors
             Summary = summary
             Description = description
             Version = release.NugetVersion
@@ -57,9 +81,11 @@ Target "NuGet" (fun _ ->
             ToolPath = nugetPath
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey"
+            WorkingDir = nugetDir @@ "Fanciful.Testing"
             Dependencies = 
-                ["Nancy", GetPackageVersion "./packages/" "Nancy"] })
-        "fancy.nuspec"
+                ["Nancy", GetPackageVersion "./packages/" "Nancy"
+                 "Nancy.Testing", GetPackageVersion "./packages/" "Nancy.Testing"] })
+        (nugetDir @@ "Fanciful.Testing" @@ "fancy.testing.nuspec") 
 )
 
 Target "GenerateDocs" (fun _ ->
@@ -78,11 +104,19 @@ Target "ReleaseDocs" (fun _ ->
     Branches.push "temp/gh-pages"
 )
 
+Target "Nuget" (fun () -> ())
+
 "Clean"
   ==> "Build"
   ==> "Test"
+  ==> "NuGet"
   ==> "GenerateDocs"
   ==> "ReleaseDocs"
-  ==> "NuGet"
+
+"NuGetFancy" 
+    ==> "NuGet"
+
+"NuGetFancyTesting"
+    ==> "NuGet"
 
 RunTargetOrDefault "GenerateDocs"
