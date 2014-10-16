@@ -106,7 +106,11 @@ module Convenience
     /// <param name="contentType">Content type value</param>
     /// <returns>Modified negotiator</returns>
     let setContentType contentType negotiator =
-        negotiator |> addHeader "Content-Type" contentType
+        match negotiator with 
+        | Response r -> r.ContentType <- contentType
+        | Negotiator n -> n.WithContentType(contentType) |> ignore
+
+        negotiator 
 
     /// <summary>
     /// Allows the response to be negotiated with any processors available for any content type
@@ -117,7 +121,7 @@ module Convenience
         match negotiator with 
         | Negotiator n ->         
             n.NegotiationContext.PermissableMediaRanges.Clear();
-            n.NegotiationContext.PermissableMediaRanges.Add(MediaRange.FromString("*/*"));
+            n.NegotiationContext.PermissableMediaRanges.Add(MediaRange "*/*");
         | Response r -> 
             raise (exn "Responses don't support negotiation use the Negotiator")
         negotiator

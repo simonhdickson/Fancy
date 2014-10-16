@@ -58,8 +58,8 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
     <Compile Include="Common.fs" />
-    <Compile Include="Program.fs" />
     <Compile Include="Convenience.fs" />
+    <Compile Include="Program.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
