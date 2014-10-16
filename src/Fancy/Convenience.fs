@@ -121,7 +121,7 @@ module Convenience
         match negotiator with 
         | Negotiator n ->         
             n.NegotiationContext.PermissableMediaRanges.Clear();
-            n.NegotiationContext.PermissableMediaRanges.Add(MediaRange.FromString("*/*"));
+            n.NegotiationContext.PermissableMediaRanges.Add(MediaRange "*/*");
         | Response r -> 
             raise (exn "Responses don't support negotiation use the Negotiator")
         negotiator
