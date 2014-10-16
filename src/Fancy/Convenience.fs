@@ -106,7 +106,11 @@ module Convenience
     /// <param name="contentType">Content type value</param>
     /// <returns>Modified negotiator</returns>
     let setContentType contentType negotiator =
-        negotiator |> addHeader "Content-Type" contentType
+        match negotiator with 
+        | Response r -> r.ContentType <- contentType
+        | Negotiator n -> n.WithContentType(contentType) |> ignore
+
+        negotiator 
 
     /// <summary>
     /// Allows the response to be negotiated with any processors available for any content type
