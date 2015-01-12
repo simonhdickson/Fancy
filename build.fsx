@@ -21,6 +21,10 @@ Target "Clean" (fun _ ->
     CleanDirs [buildDir; testDir; nugetDir; "./temp/"]
 )
 
+Target "CleanDocs" (fun _ ->
+    CleanDirs ["docs/output"]
+)
+
 Target "RestorePackages" RestorePackages
 
 Target "Build" (fun _ ->
@@ -94,9 +98,17 @@ Target "NuGetFancyTesting" (fun _ ->
         (nugetDir @@ "Fanciful.Testing" @@ "fancy.testing.nuspec") 
 )
 
-Target "GenerateDocs" (fun _ ->
-    executeFSI "docs/tools" "generate.fsx" [] |> ignore
+Target "GenerateReferenceDocs" (fun _ ->
+    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:REFERENCE"] [] then
+      failwith "generating reference documentation failed"
 )
+
+Target "GenerateHelp" (fun _ ->
+    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:HELP"] [] then
+      failwith "generating help documentation failed"
+)
+
+Target "GenerateDocs" DoNothing
 
 let gitHome = "https://github.com/simonhdickson"
 
@@ -110,23 +122,25 @@ Target "ReleaseDocs" (fun _ ->
     Branches.push "temp/gh-pages"
 )
 
-Target "Nuget" (fun _ -> 
-    ()
-)
+Target "All" DoNothing
 
 "Clean"
   ==> "RestorePackages"
   ==> "Build"
   ==> "BuildTest"
   ==> "Test"
-  ==> "NuGet"
   ==> "GenerateDocs"
-  ==> "ReleaseDocs"
+  ==> "All"
+
+"CleanDocs"
+  ==> "GenerateHelp"
+  ==> "GenerateReferenceDocs"
+  ==> "GenerateDocs"
 
 "NuGetFancy" 
-    ==> "NuGet"
+    ==> "All"
 
 "NuGetFancyTesting"
-    ==> "NuGet"
+    ==> "All"
 
-RunTargetOrDefault "GenerateDocs"
+RunTargetOrDefault "All"

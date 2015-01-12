@@ -1,29 +1,101 @@
-#I "../../packages/FSharp.Formatting/lib/net40"
-#r "FSharp.CodeFormat.dll"
+// --------------------------------------------------------------------------------------
+// Builds the documentation from `.fsx` and `.md` files in the 'docs/content' directory
+// (the generated documentation is stored in the 'docs/output' directory)
+// --------------------------------------------------------------------------------------
+
+// Binaries that have XML documentation (in a corresponding generated XML file)
+let referenceBinaries = [ "fancy.dll" ]
+// Web site location for the generated documentation
+let website = "/oxen"
+
+let githubLink = "http://github.com/curit/oxen"
+
+// Specify more information about your project
+let info =
+  [ "project-name", "Fancy"
+    "project-author", "Simon Dickson"
+    "project-summary", "Nancy for F#"
+    "project-github", githubLink
+    "project-nuget", "http://nuget.org/packages/fanciful" ]
+
+// --------------------------------------------------------------------------------------
+// For typical project, no changes are needed below
+// --------------------------------------------------------------------------------------
+
+#I "../../packages/FSharp.Formatting.2.4.36/lib/net40"
+#I "../../packages/RazorEngine.3.3.0/lib/net40"
+#I "../../packages/FSharp.Compiler.Service.0.0.67/lib/net40"
+#r "../../packages/Microsoft.AspNet.Razor.2.0.30506.0/lib/net40/System.Web.Razor.dll"
+#r "../../packages/FAKE/tools/NuGet.Core.dll"
+#r "../../packages/FAKE/tools/FakeLib.dll"
+#r "RazorEngine.dll"
 #r "FSharp.Literate.dll"
-open FSharp.Literate
+#r "FSharp.CodeFormat.dll"
+#r "FSharp.MetadataFormat.dll"
+
+open Fake
 open System.IO
+open Fake.FileHelper
+open FSharp.Literate
+open FSharp.MetadataFormat
 
-let source = Path.Combine(__SOURCE_DIRECTORY__, "../source")
-let template = Path.Combine(__SOURCE_DIRECTORY__, "../templates/") 
-let output = Path.Combine(__SOURCE_DIRECTORY__, "../output/")
+// When called from 'build.fsx', use the public project URL as <root>
+// otherwise, use the current 'output' directory.
+#if RELEASE
+let root = website
+#else
+let root = "file://" + (__SOURCE_DIRECTORY__ @@ "../output")
+#endif
 
-let projectTemplate = Path.Combine(template, "template.html")
-let projectInfo =
-  [ "page-description", "Nancy for F#"
-    "page-author", "Simon Dickson"
-    "github-link", "https://github.com/simonhdickson/Fancy"
-    "project-name", "Fancy"
-    "root", "content" ]
+// Paths with template/source/output locations
+let bin        = __SOURCE_DIRECTORY__ @@ "../../bin"
+let content    = __SOURCE_DIRECTORY__ @@ "../content"
+let output     = __SOURCE_DIRECTORY__ @@ "../output"
+let files      = __SOURCE_DIRECTORY__ @@ "../files"
+let templates  = __SOURCE_DIRECTORY__ @@ "templates"
+let formatting = __SOURCE_DIRECTORY__ @@ "../../packages/FSharp.Formatting.2.4.29/"
+let docTemplate = formatting @@ "templates/docpage.cshtml"
 
-Directory.Delete(output, true)
+// Where to look for *.csproj templates (in this order)
+let layoutRoots =
+  [ templates; formatting @@ "templates"
+    formatting @@ "templates/reference" ]
 
-if not (Directory.Exists(output)) then
-  Directory.CreateDirectory(output) |> ignore
-  Directory.CreateDirectory (Path.Combine(output, "content")) |> ignore
+// Copy static files and CSS + JS from F# Formatting
+let copyFiles () =
+  CopyRecursive files output true |> Log "Copying file: "
+  ensureDirectory (output @@ "content")
+  CopyRecursive (formatting @@ "styles") (output @@ "content") true 
+    |> Log "Copying styles and scripts: "
 
-Literate.ProcessDirectory
-  (source, projectTemplate, output, OutputKind.Html, replacements = projectInfo)
+// Build API reference from XML comments
+let buildReference () =
+  CleanDir (output @@ "reference")
+  let binaries =
+    referenceBinaries
+    |> List.map (fun lib-> bin @@ lib)
+  MetadataFormat.Generate
+    ( binaries, output @@ "reference", layoutRoots, 
+      parameters = ("root", root)::info,
+      sourceRepo = githubLink @@ "tree/master",
+      sourceFolder = __SOURCE_DIRECTORY__ @@ ".." @@ "..",
+      publicOnly = true,
+      libDirs = [bin] )
 
-for fileInfo in DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, "..\content")).EnumerateFiles() do
-  fileInfo.CopyTo(Path.Combine(Path.Combine(output, "content"), fileInfo.Name)) |> ignore
+// Build documentation from `fsx` and `md` files in `docs/content`
+let buildDocumentation () =
+  let subdirs = Directory.EnumerateDirectories(content, "*", SearchOption.AllDirectories)
+  for dir in Seq.append [content] subdirs do
+    let sub = if dir.Length > content.Length then dir.Substring(content.Length + 1) else "."
+    Literate.ProcessDirectory
+      ( dir, docTemplate, output @@ sub, replacements = ("root", root)::info,
+        layoutRoots = layoutRoots )
+
+// Generate
+copyFiles()
+#if HELP
+buildDocumentation()
+#endif
+#if REFERENCE
+buildReference()
+#endif
