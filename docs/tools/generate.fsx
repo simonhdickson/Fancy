@@ -4,11 +4,11 @@
 // --------------------------------------------------------------------------------------
 
 // Binaries that have XML documentation (in a corresponding generated XML file)
-let referenceBinaries = [ "fancy.dll" ]
+let referenceBinaries = [ "Fancy.dll" ]
 // Web site location for the generated documentation
-let website = "/oxen"
+let website = "/Fancy"
 
-let githubLink = "http://github.com/curit/oxen"
+let githubLink = "https://github.com/simonhdickson/Fancy"
 
 // Specify more information about your project
 let info =
