@@ -54,14 +54,27 @@
     <Compile Include="NancyTests.fs" />
     <Compile Include="ReflectionTests.fs" />
     <None Include="packages.config" />
+    <Content Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="FsUnit.CustomMatchers">
+      <HintPath>..\..\packages\FsUnit.xUnit.1.3.0.1\Lib\net40\FsUnit.CustomMatchers.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FsUnit.Xunit">
+      <HintPath>..\..\packages\FsUnit.xUnit.1.3.0.1\Lib\net40\FsUnit.Xunit.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
     <Reference Include="Nancy">
       <HintPath>..\..\packages\Nancy.0.23.2\lib\net40\Nancy.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NHamcrest">
+      <HintPath>..\..\packages\FsUnit.xUnit.1.3.0.1\Lib\net40\NHamcrest.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
