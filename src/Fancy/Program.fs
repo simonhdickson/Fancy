@@ -21,11 +21,6 @@
     /// but you can choose to return a string, a Nancy Negotiator, .net object, JSON
     /// or whatever Nancy can serialize to the requested content type. 
     type BoxedAsyncBuilder () =
-        member this.Bind (computation, binder) = async {
-            let! arg = computation
-            return! binder arg
-        }
-        member this.ReturnFrom = async.ReturnFrom
         member this.Return x = 
             match box(x) with 
             | :? ResponseOrNegotiator as rn ->
@@ -33,6 +28,17 @@
                 | Response r -> r |> box |> async.Return
                 | Negotiator n -> n |> box |> async.Return
             | _  as x -> x |> async.Return         
+
+        member this.Bind = async.Bind
+        member this.ReturnFrom = async.ReturnFrom
+        member this.Using = async.Using
+        member this.TryFinally = async.TryFinally
+        member this.TryWith = async.TryWith
+        member this.Zero () = async {
+            return box null
+        }
+
+
     /// Fancy specific async builder.
     /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
     let fancyAsync = new BoxedAsyncBuilder ()
