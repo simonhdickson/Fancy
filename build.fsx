@@ -28,15 +28,17 @@ Target "CleanDocs" (fun _ ->
 Target "RestorePackages" RestorePackages
 
 Target "Build" (fun _ ->
-   !! "src/**/*.fsproj"
-     |> MSBuildRelease buildDir "Build"
-     |> Log "AppBuild-Output: "
+    !! "src/**/*.fsproj"
+      |> MSBuildRelease buildDir "Build"
+      |> Log "AppBuild-Output: "
+
+    CopyDir buildDir fsharpCoreDir (fun file -> file.EndsWith ".optdata" || file.EndsWith ".sigdata")
 )
 
 Target "BuildTest" (fun _ ->
-   !! "tests/**/*.fsproj"
-     |> MSBuildRelease testDir "Build"
-     |> Log "AppBuild-Output: "
+    !! "tests/**/*.fsproj"
+      |> MSBuildRelease testDir "Build"
+      |> Log "AppBuild-Output: "
 )
 
 Target "Test" (fun _ ->
