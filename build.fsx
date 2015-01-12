@@ -2,8 +2,7 @@
 open System.IO
 open Fake            
 open Fake.Git
-
-RestorePackages()
+open System
 
 let buildDir = "./bin/"
 let testDir  = "./test/"
@@ -22,20 +21,27 @@ Target "Clean" (fun _ ->
     CleanDirs [buildDir; testDir; nugetDir; "./temp/"]
 )
 
+Target "RestorePackages" RestorePackages
+
 Target "Build" (fun _ ->
    !! "src/**/*.fsproj"
      |> MSBuildRelease buildDir "Build"
      |> Log "AppBuild-Output: "
-   // TODO: Work out why this is required :s
-   CopyDir buildDir fsharpCoreDir (fun file -> file.EndsWith ".optdata" || file.EndsWith ".sigdata")
+)
+
+Target "BuildTest" (fun _ ->
+   !! "tests/**/*.fsproj"
+     |> MSBuildRelease testDir "Build"
+     |> Log "AppBuild-Output: "
 )
 
 Target "Test" (fun _ ->
-    !! (testDir + "/*.Test.*.dll") 
-      |> xUnit (fun p ->
-          {p with
-             ShadowCopy = false;
-             OutputDir = testDir})
+    !! (testDir + "/*.Test*.dll") 
+    |> xUnit (fun p ->
+        { p with
+            ToolPath = "./packages/xunit.runners/tools/xunit.console.clr4.exe"
+            TimeOut = TimeSpan.FromMinutes 20.
+            OutputDir = "./" }) 
 )
               
 let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "ReleaseNotes.md")
@@ -104,10 +110,14 @@ Target "ReleaseDocs" (fun _ ->
     Branches.push "temp/gh-pages"
 )
 
-Target "Nuget" (fun () -> ())
+Target "Nuget" (fun _ -> 
+    ()
+)
 
 "Clean"
+  ==> "RestorePackages"
   ==> "Build"
+  ==> "BuildTest"
   ==> "Test"
   ==> "NuGet"
   ==> "GenerateDocs"
