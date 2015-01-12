@@ -28,24 +28,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{55060EC0-C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{DAB39B10-C1C7-44AB-B275-5062A86D72E4}"
 	ProjectSection(SolutionItems) = preProject
-		docs\content\style.css = docs\content\style.css
-		docs\content\tips.js = docs\content\tips.js
+		docs\content\index.fsx = docs\content\index.fsx
+		docs\content\tutorial.fsx = docs\content\tutorial.fsx
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{2C3D66FC-1CAD-42C8-8819-96BD668FA570}"
 	ProjectSection(SolutionItems) = preProject
 		docs\tools\generate.fsx = docs\tools\generate.fsx
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "source", "source", "{AFD84F9F-56D7-4E7F-A4C5-9EEEEF7CDBCE}"
-	ProjectSection(SolutionItems) = preProject
-		docs\source\index.md = docs\source\index.md
-		docs\source\selfhost.fsx = docs\source\selfhost.fsx
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{14919987-CE42-4BEA-8461-81B7B2F0CA71}"
-	ProjectSection(SolutionItems) = preProject
-		docs\templates\template.html = docs\templates\template.html
+		packages.config = packages.config
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fancy.Testing", "src\Fancy.Testing\Fancy.Testing.fsproj", "{72CF46B4-CB2E-4572-9663-3D66D995C6D0}"
@@ -82,8 +72,6 @@ Global
 		{55060EC0-CC18-4B1C-8726-EE3592CBB949} = {D45683B6-49EC-4F1E-B231-D2CD57B88F6D}
 		{DAB39B10-C1C7-44AB-B275-5062A86D72E4} = {55060EC0-CC18-4B1C-8726-EE3592CBB949}
 		{2C3D66FC-1CAD-42C8-8819-96BD668FA570} = {55060EC0-CC18-4B1C-8726-EE3592CBB949}
-		{AFD84F9F-56D7-4E7F-A4C5-9EEEEF7CDBCE} = {55060EC0-CC18-4B1C-8726-EE3592CBB949}
-		{14919987-CE42-4BEA-8461-81B7B2F0CA71} = {55060EC0-CC18-4B1C-8726-EE3592CBB949}
 	EndGlobalSection
 	GlobalSection(CodealikeProperties) = postSolution
 		SolutionGuid = 7ddb6ee0-80f8-435a-92fe-0e1d4644c310
