@@ -84,7 +84,7 @@ module Convenience
                                   | Header h -> (h.header, h.value)
                                   | HeaderTuple x -> x)
         |> Seq.iter  (fun (h, v) ->  match negotiator with
-                                     | Response x -> v |> Seq.iter (fun e -> x.Headers.Add(h, e))
+                                     | Response x -> x.Headers.Add(h, v |> String.concat ", ")
                                      | Negotiator x -> x.NegotiationContext.Headers.[h] <- v |> String.concat ", " )
 
         negotiator
