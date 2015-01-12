@@ -10,12 +10,12 @@ module Convenience
     ///Header
     type Header = {
         header: string
-        value: string []
+        value: string list
     }
     
     type HeaderOrTuple =
     | Header of Header
-    | HeaderTuple of (string * string [])
+    | HeaderTuple of (string * string list)
 
     type ModelOrFactory =
     | Model of obj
