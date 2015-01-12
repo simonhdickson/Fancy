@@ -10,12 +10,12 @@ module Convenience
     ///Header
     type Header = {
         header: string
-        value: string
+        value: string []
     }
     
     type HeaderOrTuple =
     | Header of Header
-    | HeaderTuple of (string * string)
+    | HeaderTuple of (string * string [])
 
     type ModelOrFactory =
     | Model of obj
@@ -84,8 +84,8 @@ module Convenience
                                   | Header h -> (h.header, h.value)
                                   | HeaderTuple x -> x)
         |> Seq.iter  (fun (h, v) ->  match negotiator with
-                                     | Response x -> x.Headers.Add(h, v)
-                                     | Negotiator x -> x.NegotiationContext.Headers.[h] <- v )
+                                     | Response x -> v |> Seq.iter (fun e -> x.Headers.Add(h, e))
+                                     | Negotiator x -> x.NegotiationContext.Headers.[h] <- v |> String.concat ", " )
 
         negotiator
 
