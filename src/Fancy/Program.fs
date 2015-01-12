@@ -29,15 +29,16 @@
                 | Negotiator n -> n |> box |> async.Return
             | _  as x -> x |> async.Return         
 
-        member this.Bind = async.Bind
-        member this.ReturnFrom = async.ReturnFrom
-        member this.Using = async.Using
-        member this.TryFinally = async.TryFinally
-        member this.TryWith = async.TryWith
+        member this.Bind (comp, binder) = async.Bind (comp, binder)
+        member this.ReturnFrom comp = async.ReturnFrom comp
+        member this.Using (resource, binder) = async.Using (resource, binder)
+        member this.TryFinally (comp, compensation) = async.TryFinally (comp, compensation)
+        member this.TryWith (comp, handler) = async.TryWith (comp, handler)
+        member this.Delay gen = async.Delay gen
+
         member this.Zero () = async {
             return box null
         }
-
 
     /// Fancy specific async builder.
     /// <see cref="Fancy.BoxedAsyncBuilder">This to ensure we benefit from all Nancy's goodness</see>
