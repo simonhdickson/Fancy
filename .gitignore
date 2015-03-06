@@ -33,3 +33,4 @@ nuget/*
 test/*
 docs/output/*
 temp/*
+*.ncrunchproject

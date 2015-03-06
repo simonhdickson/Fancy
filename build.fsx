@@ -2,8 +2,7 @@
 open System.IO
 open Fake            
 open Fake.Git
-
-RestorePackages()
+open System
 
 let buildDir = "./bin/"
 let testDir  = "./test/"
@@ -22,20 +21,33 @@ Target "Clean" (fun _ ->
     CleanDirs [buildDir; testDir; nugetDir; "./temp/"]
 )
 
+Target "CleanDocs" (fun _ ->
+    CleanDirs ["docs/output"]
+)
+
+Target "RestorePackages" RestorePackages
+
 Target "Build" (fun _ ->
-   !! "src/**/*.fsproj"
-     |> MSBuildRelease buildDir "Build"
-     |> Log "AppBuild-Output: "
-   // TODO: Work out why this is required :s
-   CopyDir buildDir fsharpCoreDir (fun file -> file.EndsWith ".optdata" || file.EndsWith ".sigdata")
+    !! "src/**/*.fsproj"
+      |> MSBuildRelease buildDir "Build"
+      |> Log "AppBuild-Output: "
+
+    CopyDir buildDir fsharpCoreDir (fun file -> file.EndsWith ".optdata" || file.EndsWith ".sigdata")
+)
+
+Target "BuildTest" (fun _ ->
+    !! "tests/**/*.fsproj"
+      |> MSBuildRelease testDir "Build"
+      |> Log "AppBuild-Output: "
 )
 
 Target "Test" (fun _ ->
-    !! (testDir + "/*.Test.*.dll") 
-      |> xUnit (fun p ->
-          {p with
-             ShadowCopy = false;
-             OutputDir = testDir})
+    !! (testDir + "/*.Test*.dll") 
+    |> xUnit (fun p ->
+        { p with
+            ToolPath = "./packages/xunit.runners/tools/xunit.console.clr4.exe"
+            TimeOut = TimeSpan.FromMinutes 20.
+            OutputDir = "./" }) 
 )
               
 let release = ReleaseNotesHelper.parseReleaseNotes (File.ReadLines "ReleaseNotes.md")
@@ -88,9 +100,17 @@ Target "NuGetFancyTesting" (fun _ ->
         (nugetDir @@ "Fanciful.Testing" @@ "fancy.testing.nuspec") 
 )
 
-Target "GenerateDocs" (fun _ ->
-    executeFSI "docs/tools" "generate.fsx" [] |> ignore
+Target "GenerateReferenceDocs" (fun _ ->
+    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:REFERENCE"] [] then
+      failwith "generating reference documentation failed"
 )
+
+Target "GenerateHelp" (fun _ ->
+    if not <| executeFSIWithArgs "docs/tools" "generate.fsx" ["--define:RELEASE"; "--define:HELP"] [] then
+      failwith "generating help documentation failed"
+)
+
+Target "GenerateDocs" DoNothing
 
 let gitHome = "https://github.com/simonhdickson"
 
@@ -104,19 +124,25 @@ Target "ReleaseDocs" (fun _ ->
     Branches.push "temp/gh-pages"
 )
 
-Target "Nuget" (fun () -> ())
+Target "All" DoNothing
 
 "Clean"
+  ==> "RestorePackages"
   ==> "Build"
+  ==> "BuildTest"
   ==> "Test"
-  ==> "NuGet"
   ==> "GenerateDocs"
-  ==> "ReleaseDocs"
+  ==> "All"
+
+"CleanDocs"
+  ==> "GenerateHelp"
+  ==> "GenerateReferenceDocs"
+  ==> "GenerateDocs"
 
 "NuGetFancy" 
-    ==> "NuGet"
+    ==> "All"
 
 "NuGetFancyTesting"
-    ==> "NuGet"
+    ==> "All"
 
-RunTargetOrDefault "GenerateDocs"
+RunTargetOrDefault "All"
