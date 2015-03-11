@@ -29,7 +29,7 @@
                 return this.Negotiate 
                         |> ResponseOrNegotiator.Negotiator
                         |> addModel (Model {name = this.s}) 
-                        |> addHeader "vla" "yoghurt"
+                        |> addHeader "vla" ["yoghurt"]
                         |> statusCode (Number 418)
             })
 
@@ -43,7 +43,7 @@
                 | (_, HttpStatusCode.NotFound) -> 
                                  ctx.Response
                                  |> ResponseOrNegotiator.Response
-                                 |> addHeader "test" "test"
+                                 |> addHeader "test" ["test"]
                                  |> addToContents (fun s -> 
                                      use sw = new StreamWriter(s)
                                      sw.Write "(tm) (r) (c)")
