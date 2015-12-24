@@ -126,9 +126,11 @@
     type FancyBuilder(nancyModule: NancyModule) =
         member this.Yield(a) = a
 
-        member private this.routeDelegateBuilder (processor, parameters) = 
-            fun dictionary cancellationToken -> 
-                Async.StartAsTask (requestWrapper parameters processor dictionary cancellationToken)
+        member private this.addUrlToRouteBuilder (routeBuilder:NancyModule.RouteBuilder, url:StringFormat<'a, 'z>, processor:'a) =
+            let peeledProcessor = processor |> peel
+            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
+            do routeBuilder.[parsedUrl, true] <-
+                fun dictionary cancellationToken -> Async.StartAsTask (requestWrapper parameters peeledProcessor dictionary cancellationToken)
 
         [<CustomOperation("before")>]
         member this.Before(source, processor) =
@@ -146,34 +148,23 @@
             
         [<CustomOperation("get")>]
         member this.Get (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let peeledProcessor = processor |> peel
-            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
-            do nancyModule.Get.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+            this.addUrlToRouteBuilder (nancyModule.Get, url, processor)
             
         [<CustomOperation("post")>]
         member this.Post (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let peeledProcessor = processor |> peel
-            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
-            do nancyModule.Post.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+            this.addUrlToRouteBuilder (nancyModule.Post, url, processor)
         
         [<CustomOperation("put")>]
         member this.Put (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let peeledProcessor = processor |> peel
-            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
-            do nancyModule.Put.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)        
+            this.addUrlToRouteBuilder (nancyModule.Put, url, processor)
 
         [<CustomOperation("delete")>]
         member this.Delete (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let peeledProcessor = processor |> peel
-            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
-            do nancyModule.Delete.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
+            this.addUrlToRouteBuilder (nancyModule.Delete, url, processor)
 
         [<CustomOperation("options")>]
         member this.Options (source, url:StringFormat<'a, 'z>, processor:'a) =
-            let peeledProcessor = processor |> peel
-            let (parsedUrl, parameters) = parseUrl url.Value peeledProcessor
-            do nancyModule.Options.[parsedUrl, true] <- this.routeDelegateBuilder (peeledProcessor, parameters)
-    
+            this.addUrlToRouteBuilder (nancyModule.Options, url, processor)
 
     /// The fancy compution builder use this to write your modules for nancy in f#
     /// example: 
