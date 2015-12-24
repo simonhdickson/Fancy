@@ -166,6 +166,11 @@
         member this.Options (source, url:StringFormat<'a, 'z>, processor:'a) =
             this.addUrlToRouteBuilder (nancyModule.Options, url, processor)
 
+        [<CustomOperation("patch")>]
+        member this.Patch (source, url:StringFormat<'a, 'z>, processor:'a) =
+            this.addUrlToRouteBuilder (nancyModule.Patch, url, processor)
+
+
     /// The fancy compution builder use this to write your modules for nancy in f#
     /// example: 
     /// <c>
