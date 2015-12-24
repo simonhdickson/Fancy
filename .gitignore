@@ -34,3 +34,4 @@ test/*
 docs/output/*
 temp/*
 *.ncrunchproject
+.fake/
